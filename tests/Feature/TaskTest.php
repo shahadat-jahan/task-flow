@@ -30,7 +30,11 @@ test('authenticated user can list tasks with filters, projects, tags, and summar
             ->has('filters')
             ->has('projects')
             ->has('tags')
-            ->has('summary'));
+            ->has('summary')
+            ->has('summary.trends.total_tasks')
+            ->has('summary.trends.completed')
+            ->has('summary.trends.in_progress')
+            ->has('summary.trends.overdue_count'));
 });
 
 test('index filters by status, project, and search', function () {

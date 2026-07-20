@@ -196,4 +196,66 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
 - `app.ts` `layout` resolver left unchanged; `breadcrumbs` prop still accepted by
   `AppLayout` for backward compatibility but no longer rendered.
 
+## Tasks list page (Prompt: Dashboard/Tasks list UI)
+
+### Shared by `/dashboard` and `/tasks`
+- Both routes render `Tasks/Index.vue`. `GET /dashboard` (`DashboardController@index`)
+  already reused the `Tasks/Index` component (see the app-shell decision), so this
+  single page is the list for both URLs. No second page was built.
+
+### Summary cards — real week-over-week trends (NOT a neutral placeholder)
+- `App\Services\TaskSummaryService::summarize()` now also returns a `trends` key
+  with `total_tasks` / `completed` / `in_progress` / `overdue_count`, each a
+  `{ value, direction }` pair. `SummaryCard.vue` renders the icon badge, the
+  count, the label, and the trend delta ("+200% vs last week" etc.).
+- Trends are computed by comparison queries, not a snapshots table: the "previous"
+  value is every task whose `created_at < now()->subWeek()`. `direction` is
+  `up`/`down`/`neutral`; `value` is `'New'` (previous 0 & current > 0),
+  `'0%'` (no change / no baseline), or `'%+d%%'` (signed percentage).
+- **Approximation (documented):** task status is not snapshotted over time, so the
+  completed / in-progress / overdue "week ago" figures assume each record's
+  *current* status also applied a week ago. Good enough for a trend card; not a
+  precise historical diff. No migration added — it works against existing columns.
+- Test: `tests/Feature/DashboardTest.php` ("summary trends compare current totals
+  against last week") seeds 1 task >2 weeks old + 2 tasks 3 days old and asserts
+  `summary.trends.total_tasks` = `+200%` / `up`. `TaskTest` asserts the four
+  `summary.trends.*` keys reach the client on `/tasks`.
+
+### Filters (client-driven, `router.get` with `preserveState`)
+- `status`, `priority`, `project_id`, `tag_id` are reka-ui `Select`s bound with
+  `v-model` to local refs seeded from the `filters` prop (sentinal `'all'` = no
+  filter). A `watch` on the four selects fires `applyFilters()` immediately.
+- `search` is a debounced (300ms) `Input`; only the search box is debounced so
+  typing doesn't spam the server while Select changes stay instant. `applyFilters()`
+  drops any `'all'`/empty value and `router.get(index.url(), params, { preserveState,
+  preserveScroll, replace })`. `withQueryString()` on the controller keeps the
+  other params through pagination links.
+
+### Table / mobile / pagination / delete
+- Desktop table (`hidden md:block`): checkbox, `#id`, Task (title + project color
+  dot + tags), Status badge, Priority badge, Assignee avatar+name, Due Date
+  (red when `isOverdue` — past due, not done/cancelled), Actions (Edit Link,
+  Delete button). Status/Priority colors are local `Record<enum, class>` maps.
+  Row click → `router.visit(show.url(task.id))`; the checkbox and Actions cells
+  use `@click.stop` so they don't navigate.
+- Mobile (`md:hidden`): stacked cards with the same fields.
+- Pagination: renders the Laravel `tasks.links` array; active link styled, disabled
+  (`url: null`) rendered as plain text, labels via `v-html` (trusted backend
+  output for the `«`/`»` markers, wrapped in a native `<span>` to satisfy
+  `vue/no-v-html-on-component`).
+- Delete uses a **controlled** `DeleteTaskDialog.vue` (reka-ui `Dialog` with
+  `:open` + `@update:open` → cancel). Parent holds `pendingDelete`; confirm does
+  `router.delete(destroy.url(id), { preserveScroll, onSuccess: clear })`. This is a
+  deliberate deviation from the starter-kit's uncontrolled `DialogTrigger` pattern
+  (used in `DeleteUser.vue`) so the dialog state lives in the list component.
+
+### Deviations
+- **Row checkboxes are a no-op.** Present and individually toggleable
+  (`selectedIds` `Set`), but no bulk action (select-all, bulk delete/status) is
+  wired yet — out of scope for this list page; left for a later prompt.
+- **"Create your first task" (empty state) and AppLayout's "+ New Task" are no-ops.**
+  There is no `tasks.create` route/page, so both carry no handler.
+- **`+ Filters` is not implemented** — the four inline Selects (plus search) cover
+  the agreed filter set; the visual "+ Filters" affordance from the design is
+  omitted rather than built as a non-functional button.
 
