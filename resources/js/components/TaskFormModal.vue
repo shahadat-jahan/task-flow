@@ -201,7 +201,7 @@ function deleteTask(): void {
         :open="open"
         @update:open="(value: boolean) => !value && emit('close')"
     >
-        <DialogContent class="sm:max-w-2xl">
+        <DialogContent class="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
             <button
                 type="button"
                 class="absolute end-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none"

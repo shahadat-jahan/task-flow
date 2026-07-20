@@ -323,3 +323,68 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
   change from the default `JsonResource::collection` wrapping, made to keep the
   client-side selects simple.
 
+## Polish pass (Prompt: empty states, flash messages, responsive, tests)
+
+### `Tasks/Show.vue` was a placeholder (core-CRUD gap, now built)
+- The `tasks.show` route + `TaskController@show` shipped earlier, but the Vue
+  page was only a **stub** that rendered none of its data — comments and
+  attachments were passed by the controller but never displayed. That is why the
+  Task-Details empty states and responsive requirements of this pass couldn't be
+  met until the page was actually built.
+- It is now a **full Task Details page**: header card (title, status/priority
+  badges, inline Status `<Select>` that `router.patch`es `tasks.status.update`
+  on change, due date / assignee / project / created-by meta grid, tags badges,
+  description), a Comments section (list with avatar+relative-time+body, delete
+  button for the author, add form via `useForm`), and an Attachments section
+  (list with size/uploader/download link, author-only delete, file-upload form).
+  All three lists have centered empty states with a lucide icon.
+
+### Tasks list empty state now distinguishes filter vs no-task
+- `Tasks/Index.vue` empty block splits on the existing `hasActiveFilters`
+  computed: filters active → "No tasks match your filters" + "Try adjusting or
+  clearing your filters." + a **Clear filters** button (`resetFilters()`); no
+  filters → "No tasks found" + a **Create your first task** CTA that now opens
+  the create modal (`openCreate()`), replacing the prior no-op CTA. Padding
+  softened to `p-8 sm:p-12` so it isn't cramped at 375px.
+
+### Flash toasts already working; `<Toaster />` added to AuthLayout
+- Every authenticated page already surfaces success toasts (controllers flash
+  `toast: { type, message }`; `flashToast.ts` listens on `router.on('flash')`
+  and calls `toast[type](message)`; `<Toaster />` was already in `AppLayout`).
+  Only addition: `<Toaster />` is now also mounted in `AuthLayout.vue` so auth
+  flashes (e.g. password-mismatch / throttling errors) surface too.
+
+### Mobile sidebar drawer + shared `SidebarContent`
+- `AppLayout.vue` sidebar was `hidden … md:flex` — below `md` it vanished with
+  no nav access. Extracted the sidebar body (logo + nav + projects + user
+  dropdown) into a new `components/SidebarContent.vue` that emits `navigate`
+  on `<Link>` click. The desktop `<aside>` and a new `Sheet` drawer (reka-ui
+  `Sheet`, `side="left"`) both render `<SidebarContent>`; the drawer closes on
+  `@navigate`. A hamburger `<Button>` (`Menu` icon, `md:hidden`) in the top bar
+  opens it.
+
+### Shared badge maps extracted
+- `statusBadgeClass` / `priorityBadgeClass` (`Record<string,string>`) were
+  duplicated in `Tasks/Index.vue` and `Tasks/Show.vue`; both now import them
+  from a new `lib/taskBadges.ts` so the two views stay consistent.
+
+### Modal scrolls on mobile
+- `TaskFormModal.vue` `DialogContent` gained `max-h-[90dvh] overflow-y-auto`
+  (keep `sm:max-w-2xl`) so long forms scroll rather than overflow on mobile.
+
+### Tests added
+- `tests/Feature/TaskTest.php`: a combined-filter test creates tasks across
+  distinct status/priority/project/tag combos and asserts that setting **all
+  four** filters returns exactly the one matching task, and that dropping the tag
+  filter broadens it to two. (Existing tests filter one dimension at a time.)
+  Note: tag is created *after* the tasks, because the Task factory's
+  `afterCreating` hook auto-attaches 1–3 random tags when any Tag exists —
+  creating the tag first would cause a `tag_task` unique-constraint collision.
+- `tests/Feature/AuthTest.php` (new): guest redirects off `/dashboard` &
+  `/tasks.index`; valid/invalid login; authenticated logout; valid/invalid
+  registration. Uses `User::factory()` with a known bcrypt password and Fortify
+  routes (`login.store`, `logout`, `register.store`).
+- Policy edge cases (forbidden task/comment/attachment deletes) were already
+  covered by existing `TaskTest`/`CommentTest`/`AttachmentTest`, so no
+  duplication was added.
+

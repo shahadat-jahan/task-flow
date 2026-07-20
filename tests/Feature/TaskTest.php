@@ -213,3 +213,54 @@ test('creator can change a task status inline; non-creator cannot', function () 
 
     expect($task->refresh()->status)->toBe(TaskStatus::Done);
 });
+
+test('combined status, priority, project, and tag filters narrow correctly', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->create();
+
+    // Create the tasks before any tag exists so the factory's auto-tag hook is a no-op,
+    // letting us control tag membership explicitly below.
+    $matching = Task::factory()->create([
+        'status' => TaskStatus::Done,
+        'priority' => TaskPriority::High,
+        'project_id' => $project->id,
+    ]);
+
+    // Same status + priority + project, but without the tag.
+    Task::factory()->create([
+        'status' => TaskStatus::Done,
+        'priority' => TaskPriority::High,
+        'project_id' => $project->id,
+    ]);
+
+    // Same status + priority + tag, but without the project.
+    $tagOnly = Task::factory()->create([
+        'status' => TaskStatus::Done,
+        'priority' => TaskPriority::High,
+        'project_id' => null,
+    ]);
+
+    $tag = Tag::factory()->create();
+    $matching->tags()->attach($tag->id);
+    $tagOnly->tags()->attach($tag->id);
+
+    $this->actingAs($user)
+        ->get(route('tasks.index', [
+            'status' => TaskStatus::Done->value,
+            'priority' => TaskPriority::High->value,
+            'project_id' => $project->id,
+            'tag_id' => $tag->id,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('tasks.data', 1));
+
+    // Dropping the tag filter broadens the result to the project-mate too.
+    $this->actingAs($user)
+        ->get(route('tasks.index', [
+            'status' => TaskStatus::Done->value,
+            'priority' => TaskPriority::High->value,
+            'project_id' => $project->id,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('tasks.data', 2));
+});

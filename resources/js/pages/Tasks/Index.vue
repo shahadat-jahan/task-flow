@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { useInitials } from '@/composables/useInitials';
 import { useTaskModal } from '@/composables/useTaskModal';
+import { statusBadgeClass, priorityBadgeClass } from '@/lib/taskBadges';
 import { destroy, index, show } from '@/routes/tasks';
 
 type Status = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
@@ -104,7 +105,7 @@ const props = defineProps<{
 }>();
 
 const { getInitials } = useInitials();
-const { isOpen, editingTask, openEdit, close } = useTaskModal();
+const { isOpen, editingTask, openEdit, openCreate, close } = useTaskModal();
 
 const statusOptions: { value: Status; label: string }[] = [
     { value: 'todo', label: 'Todo' },
@@ -119,20 +120,6 @@ const priorityOptions: { value: Priority; label: string }[] = [
     { value: 'medium', label: 'Medium' },
     { value: 'high', label: 'High' },
 ];
-
-const statusBadgeClass: Record<Status, string> = {
-    todo: 'bg-slate-100 text-slate-700',
-    in_progress: 'bg-amber-100 text-amber-700',
-    in_review: 'bg-blue-100 text-blue-700',
-    done: 'bg-emerald-100 text-emerald-700',
-    cancelled: 'bg-red-100 text-red-700',
-};
-
-const priorityBadgeClass: Record<Priority, string> = {
-    low: 'bg-slate-100 text-slate-700',
-    medium: 'bg-amber-100 text-amber-700',
-    high: 'bg-red-100 text-red-700',
-};
 
 const statusLabel = (status: Status): string =>
     statusOptions.find((option) => option.value === status)?.label ?? status;
@@ -400,16 +387,32 @@ function openTask(task: Task): void {
         <!-- Empty state -->
         <div
             v-if="tasks.data.length === 0"
-            class="rounded-lg border border-dashed border-border bg-white p-12 text-center"
+            class="rounded-lg border border-dashed border-border bg-white p-8 text-center sm:p-12"
         >
-            <p class="text-lg font-medium">No tasks found</p>
-            <p class="mt-1 text-sm text-muted-foreground">
-                Tasks you create will appear here.
-            </p>
-            <Button class="mt-4" type="button">
-                <Plus class="size-4" />
-                Create your first task
-            </Button>
+            <template v-if="hasActiveFilters">
+                <p class="text-lg font-medium">No tasks match your filters</p>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Try adjusting or clearing your filters.
+                </p>
+                <Button
+                    class="mt-4"
+                    variant="outline"
+                    type="button"
+                    @click="resetFilters"
+                >
+                    Clear filters
+                </Button>
+            </template>
+            <template v-else>
+                <p class="text-lg font-medium">No tasks found</p>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Tasks you create will appear here.
+                </p>
+                <Button class="mt-4" type="button" @click="openCreate()">
+                    <Plus class="size-4" />
+                    Create your first task
+                </Button>
+            </template>
         </div>
 
         <!-- Desktop table -->
