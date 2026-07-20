@@ -135,4 +135,65 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
   variant) was left as-is; `app.ts` resolves `auth/*` → the top-level
   `AuthLayout.vue` that was rewritten.
 
+## App shell (Prompt: shared authenticated shell for Dashboard/Tasks/Task Details)
+
+### Rebuilt bespoke shell, did not extend the reka-ui starter shell
+- `resources/js/layouts/AppLayout.vue` was **rewritten** from a thin wrapper
+  (which delegated to `AppSidebarLayout` → reka-ui `SidebarProvider` collapsible
+  icon rail) into a bespoke fixed split shell: a static left **sidebar** (TaskFlow
+  logo, nav with lucide icons, a PROJECTS section, a user dropdown) + a **top bar**
+  (page title + subtitle left; search input, "+ New Task" button, notification Bell
+  right) + `<slot />` content area. Single root `<div>`.
+- The reka-ui collapsible `Sidebar` primitives were the wrong model for this
+  fixed two-pane design ("adapt rather than duplicate"), so we reused the
+  project's own UI primitives instead of re-inventing them:
+  `@/components/ui/{avatar,dropdown-menu,button,input}`, `UserMenuContent.vue`
+  (drop-in Settings/Logout menu — already wires `logout()` / `profile.edit()` /
+  `data-test="logout-button"`), `AppLogoIcon.vue`, the `useInitials` /
+  `useCurrentUrl` composables, and `@/routes` wayfinder helpers.
+- The starter-kit shell components (`AppSidebar.vue`, `NavMain.vue`,
+  `NavFooter.vue`, `NavUser.vue`, `AppSidebarHeader.vue`, `AppContent.vue`,
+  `AppShell.vue`, `AppHeader.vue`, `AppHeaderLayout.vue`, `AppSidebarLayout.vue`)
+  are now **orphaned** (left in place, not deleted — consistent with prior
+  "leave orphaned" pattern). `app.ts` already imports `@/layouts/AppLayout.vue`,
+  so the resolver is unchanged; settings pages still wrap `[AppLayout,
+  SettingsLayout]` and render fine inside the new `<slot />`.
+
+### Sidebar data — shared `sidebarProjects` prop
+- `HandleInertiaRequests::share()` now adds `sidebarProjects`:
+  `Project::orderBy('name')->withCount('tasks')->get(['id','name','color'])` →
+  mapped to `{ id, name, color, tasks_count }`. Guarded so guests (the login page
+  also shares props) get `[]`. Typed in `resources/js/types/global.d.ts`.
+- Named `sidebarProjects` (not `projects`) deliberately: the Dashboard and Task
+  controllers already pass a page prop called `projects` (`ProjectResource`
+  collection, used for task-filter dropdowns), and a page prop **shadows** a
+  shared prop of the same name. A distinct key lets the sidebar's fresh
+  `tasks_count` data coexist with the page's filter list. (Confirmed via test:
+  the shared prop surfaces as `page.props.sidebarProjects`, not nested under
+  `data`.)
+
+### Title/subtitle mechanism
+- `AppLayout` accepts `title?` / `subtitle?` props (passed via
+  `defineOptions({ layout: { title, subtitle } })`). Pages that don't pass a
+  title fall back to `page.props.name` (app name). `Tasks/Index.vue` →
+  "Tasks" / "Manage and track your team's tasks"; `Tasks/Show.vue` → "Task
+  Details" / "View and manage this task". (Dashboard renders the shared
+  `Tasks/Index` component, so it inherits that title.)
+
+### Deviations
+- **User "role" not shown.** The `User` model has no role column, so the sidebar
+  user block shows `name` + `email` (existing `UserInfo`/avatar pattern) instead
+  of a role line.
+- **"+ New Task" button is a no-op.** There is no `tasks.create` route/page (the
+  tasks resource is generated `->except(['create'])`), so the button carries
+  `data-test="new-task-button"` but has no handler; the task-create modal is out
+  of scope for this shell (wiring left for a later prompt).
+- **Search input and notification Bell are decorative** (no handlers yet) —
+  mirrors the starter kit's existing `Search` button pattern.
+- **Profile and Settings nav rows both point at `profile.edit()`** (i.e.
+  `/settings/profile`; only that route exists — `settings.profile` is a
+  redirect). Two distinct rows kept for design fidelity.
+- `app.ts` `layout` resolver left unchanged; `breadcrumbs` prop still accepted by
+  `AppLayout` for backward compatibility but no longer rendered.
+
 

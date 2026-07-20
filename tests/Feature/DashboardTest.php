@@ -2,6 +2,7 @@
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -50,4 +51,23 @@ test('dashboard summary is zero-filled and includes overdue', function () {
             ->where('summary.by_priority.'.TaskPriority::High->value, 1)
             ->where('summary.by_priority.'.TaskPriority::Medium->value, 1)
             ->where('summary.by_priority.'.TaskPriority::Low->value, 1));
+});
+
+test('shared projects prop includes task counts', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->create(['name' => 'Alpha']);
+    Task::factory()->count(3)->create([
+        'project_id' => $project->id,
+        'status' => TaskStatus::Todo,
+        'priority' => TaskPriority::High,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('sidebarProjects')
+            ->where('sidebarProjects.0.id', $project->id)
+            ->where('sidebarProjects.0.name', 'Alpha')
+            ->where('sidebarProjects.0.color', $project->color)
+            ->where('sidebarProjects.0.tasks_count', 3));
 });
