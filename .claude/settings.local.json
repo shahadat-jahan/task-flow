@@ -6,7 +6,9 @@
       "Bash(git commit *)",
       "Bash(vendor/bin/pint --dirty --format agent)",
       "Bash(xargs grep -l \"confirm-password\\\\|password.confirm\")",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(php *)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

@@ -9,7 +9,6 @@ This codebase is graded on Laravel architecture, Vue implementation,
 Figma accuracy, DB design, code quality, validation/error handling, UI
 responsiveness, and git commit quality — treat all of these as real
 constraints, not suggestions.
-Figma link: https://www.figma.com/design/uuG7IjiNz8jDyo17yD4aAA/Design-TaskFlow-SaaS-App?node-id=0-1&p=f&t=P4g2biS1Fy2wCPTd-0
 
 ## Stack & Architecture
 
@@ -131,9 +130,9 @@ Two tiers — never blur them:
 
 ## Frontend Conventions
 
-Directly satisfies the assignment PDF's Section 5 (Frontend): responsive
-layout, clean UI implementation, and matching Figma as closely as possible
+Directly satisfies responsive layout, clean UI implementation, and matching Figma as closely as possible
 are graded criteria, not aesthetic preferences.
+Figma link: "https://www.figma.com/design/uuG7IjiNz8jDyo17yD4aAA/Design-TaskFlow-SaaS-App?node-id=0-1&p=f&t=P4g2biS1Fy2wCPTd-0".
 
 - **Dashboard and Tasks list are one page, not two.** The Figma design
   confirms this: greeting text, 4 summary cards, then the
@@ -154,9 +153,6 @@ are graded criteria, not aesthetic preferences.
 ## Git & Commits
 
 - Alwayse write, run Test and run Pint
-- Commit after every logically complete unit of work — see
-  `/agent-prompts.md` for the exact task breakdown and commit boundaries
-  if you're following that file turn-by-turn.
 - Commit messages explain **why**, not just what
   (`feat(tasks): CRUD backend with project/tag associations, search, and
   resource-shaped data`, not `add task controller`).
