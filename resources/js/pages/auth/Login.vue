@@ -13,8 +13,8 @@ import { store } from '@/routes/login';
 
 defineOptions({
     layout: {
-        title: 'Log in to your account',
-        description: 'Enter your email and password below to log in',
+        title: 'Sign in to TaskFlow',
+        description: 'Enter your credentials to access your workspace',
     },
 });
 
@@ -57,7 +57,17 @@ defineProps<{
             </div>
 
             <div class="grid gap-2">
-                <Label for="password">Password</Label>
+                <div class="flex items-center justify-between">
+                    <Label for="password">Password</Label>
+                    <TextLink
+                        v-if="canResetPassword"
+                        :href="'/forgot-password'"
+                        class="text-sm"
+                        :tabindex="5"
+                    >
+                        Forgot password?
+                    </TextLink>
+                </div>
                 <PasswordInput
                     id="password"
                     name="password"
@@ -78,19 +88,40 @@ defineProps<{
 
             <Button
                 type="submit"
-                class="mt-4 w-full"
+                class="mt-2 w-full"
                 :tabindex="4"
                 :disabled="processing"
                 data-test="login-button"
             >
                 <Spinner v-if="processing" />
-                Log in
+                Sign In
+            </Button>
+
+            <div class="relative text-center text-sm">
+                <span
+                    class="relative z-10 bg-white px-2 text-muted-foreground"
+                >
+                    or continue with
+                </span>
+                <div
+                    class="absolute inset-x-0 top-1/2 -z-0 h-px bg-border"
+                ></div>
+            </div>
+
+            <!-- Google OAuth is out of scope for this build -->
+            <Button
+                variant="outline"
+                type="button"
+                class="w-full"
+                :tabindex="6"
+            >
+                Continue with Google
             </Button>
         </div>
 
         <div class="text-center text-sm text-muted-foreground">
             Don't have an account?
-            <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
+            <TextLink :href="register()" :tabindex="7">Sign up free</TextLink>
         </div>
     </Form>
 </template>

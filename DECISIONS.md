@@ -105,4 +105,34 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
   `task` object. Nested `UserResource`/`ProjectResource`/`TagResource` and the
   `comments.*.user` / `attachments.*.uploader` maps resolve recursively.
 
+## Auth pages restyle (Prompt: Figma split-screen)
+
+### Visual-only change, logic preserved
+- `resources/js/layouts/AuthLayout.vue` was rewritten from a centered-card shell
+  into the confirmed split-screen: purple→indigo gradient left panel (TaskFlow
+  logo/wordmark, italic testimonial from "Maya Rodriguez / MR", three stat
+  counters) + white right panel with the form. Left panel is `hidden` below the
+  `md` breakpoint. Exact Figma copy used (testimonial, name/title, stats
+  `10K+ Teams` / `99.9% Uptime` / `4.9/5 Rating`).
+- `Login.vue` / `Register.vue` were restyled (Tailwind only). All form wiring is
+  **untouched**: `store.form()`, `v-slot="{ errors, processing }"`,
+  `:reset-on-success`, `:passwordrules="passwordRules"`, `data-test` hooks,
+  `TextLink`/`InputError`/`Spinner` usage, and the `status` flash.
+- Auth page headings/subtext render via the layout's `title`/`description` props
+  (passed from each page's `defineOptions({ layout: { title, description } })`),
+  unchanged mechanism.
+
+### Deviations
+- **"Forgot password?" link is gated by `canResetPassword`** and points to the
+  literal `/forgot-password` path. Fortify `resetPasswords()` is intentionally
+  disabled (see auth decision), so `@/routes/password` is NOT generated and
+  `canResetPassword` is always `false` — the link is therefore hidden in
+  practice. This mirrors the original starter-kit pattern ("keep it wired")
+  without importing a non-existent module (which previously broke `npm run build`).
+- **"Continue with Google" button** is visually present (outline, full-width)
+  with no click handler and an HTML comment marking OAuth as out of scope.
+- `resources/js/layouts/auth/AuthSplitLayout.vue` (a pre-existing unused split
+  variant) was left as-is; `app.ts` resolves `auth/*` → the top-level
+  `AuthLayout.vue` that was rewritten.
+
 

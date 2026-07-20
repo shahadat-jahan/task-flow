@@ -16,7 +16,7 @@ defineProps<{
 
 defineOptions({
     layout: {
-        title: 'Create an account',
+        title: 'Create your account',
         description: 'Enter your details below to create your account',
     },
 });
@@ -33,7 +33,7 @@ defineOptions({
     >
         <div class="grid gap-6">
             <div class="grid gap-2">
-                <Label for="name">Name</Label>
+                <Label for="name">Full name</Label>
                 <Input
                     id="name"
                     type="text"
@@ -48,7 +48,7 @@ defineOptions({
             </div>
 
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">Work email</Label>
                 <Input
                     id="email"
                     type="email"
@@ -56,7 +56,7 @@ defineOptions({
                     :tabindex="2"
                     autocomplete="email"
                     name="email"
-                    placeholder="email@example.com"
+                    placeholder="you@company.com"
                 />
                 <InputError :message="errors.email" />
             </div>
@@ -72,6 +72,7 @@ defineOptions({
                     placeholder="Password"
                     :passwordrules="passwordRules"
                 />
+                <p class="text-xs text-muted-foreground">Min. 8 characters</p>
                 <InputError :message="errors.password" />
             </div>
 
@@ -97,8 +98,13 @@ defineOptions({
                 data-test="register-user-button"
             >
                 <Spinner v-if="processing" />
-                Create account
+                Create Account
             </Button>
+
+            <p class="px-1 text-center text-xs text-muted-foreground">
+                By creating an account you agree to our Terms of Service and
+                Privacy Policy.
+            </p>
         </div>
 
         <div class="text-center text-sm text-muted-foreground">
@@ -107,7 +113,7 @@ defineOptions({
                 :href="login()"
                 class="underline underline-offset-4"
                 :tabindex="6"
-                >Log in</TextLink
+                >Sign in</TextLink
             >
         </div>
     </Form>
