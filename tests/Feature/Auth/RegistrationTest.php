@@ -78,6 +78,30 @@ test('email is not verified with an incorrect code', function () {
     expect($user->fresh()->email_verified_at)->toBeNull();
 });
 
+test('registration rejects a password shorter than the minimum', function () {
+    $response = $this->post(route('register.store'), [
+        'name' => 'Test User',
+        'email' => 'test@example.com',
+        'password' => 'short',
+        'password_confirmation' => 'short',
+    ]);
+
+    $response->assertSessionHasErrors('password');
+    expect(User::where('email', 'test@example.com')->exists())->toBeFalse();
+});
+
+test('email verification requires a code', function () {
+    $user = User::factory()->unverified()->create();
+
+    $response = $this->post(route('verification.verify'), [
+        'email' => $user->email,
+        'code' => '',
+    ]);
+
+    $response->assertSessionHasErrors('code');
+    expect($user->fresh()->email_verified_at)->toBeNull();
+});
+
 test('email is not verified with an expired code', function () {
     $user = User::factory()->unverified()->create();
 

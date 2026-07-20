@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -7,12 +8,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { usePasswordStrength } from '@/composables/usePasswordStrength';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
-defineProps<{
+const props = defineProps<{
     passwordRules: string;
 }>();
+
+const password = ref('');
+const { strength, strengthColors, strengthLabels } = usePasswordStrength(password);
+
+const passwordMin = computed(() => {
+    const match = props.passwordRules.match(/minlength:(\d+)/);
+
+    return match ? Number(match[1]) : 8;
+});
 
 defineOptions({
     layout: {
@@ -102,16 +113,27 @@ defineOptions({
                             name="password"
                             placeholder="Min. 8 characters"
                             :passwordrules="passwordRules"
+                            v-model="password"
                             class="!h-[42px] w-full bg-white border border-[#E2E8F0] !rounded-[16px] pl-[40px] pr-10 text-[14px] font-normal leading-[20px] text-[#0F172B] placeholder-[#90A1B9] focus-visible:ring-1 focus-visible:ring-[#4F39F6] focus-visible:border-[#4F39F6]"
                         />
                     </div>
                     <!-- Password Strength Indicator Bars -->
                     <div class="flex flex-row w-full gap-1 pt-2">
-                        <div class="h-1 flex-1 bg-[#E2E8F0] rounded-full"></div>
-                        <div class="h-1 flex-1 bg-[#E2E8F0] rounded-full"></div>
-                        <div class="h-1 flex-1 bg-[#E2E8F0] rounded-full"></div>
-                        <div class="h-1 flex-1 bg-[#E2E8F0] rounded-full"></div>
+                        <div
+                            v-for="i in 4"
+                            :key="i"
+                            class="h-1 flex-1 rounded-full transition-colors"
+                            :style="{ backgroundColor: i <= strength ? strengthColors[strength - 1] : '#E2E8F0' }"
+                        ></div>
                     </div>
+                    <p
+                        v-if="strength > 0"
+                        class="pt-1 text-[12px] font-medium"
+                        :style="{ color: strengthColors[strength - 1] }"
+                    >
+                        {{ strengthLabels[strength - 1] }} password
+                    </p>
+                    <p class="pt-1 text-[12px] text-[#90A1B9]">Minimum {{ passwordMin }} characters.</p>
                     <InputError :message="errors.password" />
                 </div>
 

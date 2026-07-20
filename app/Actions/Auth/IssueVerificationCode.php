@@ -27,6 +27,10 @@ class IssueVerificationCode
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        Mail::to($email)->send(new SendVerificationCode($code, $type));
+        try {
+            Mail::to($email)->send(new SendVerificationCode($code, $type));
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

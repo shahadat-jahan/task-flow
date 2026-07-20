@@ -49,7 +49,7 @@ class AppServiceProvider extends ServiceProvider
                 ->numbers()
                 ->symbols()
                 ->uncompromised()
-            : null,
+            : Password::min(8),
         );
     }
 }

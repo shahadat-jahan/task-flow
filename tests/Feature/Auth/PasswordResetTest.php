@@ -98,6 +98,41 @@ test('password cannot be reset with an invalid code', function () {
     expect(Hash::check('password', $user->fresh()->password))->toBeFalse();
 });
 
+test('password reset rejects a password shorter than the minimum', function () {
+    $user = User::factory()->create(['password' => 'old-password']);
+
+    EmailVerificationCode::create([
+        'email' => $user->email,
+        'code' => '123456',
+        'type' => 'reset',
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $response = $this->post(route('auth.password.update'), [
+        'email' => $user->email,
+        'code' => '123456',
+        'password' => 'short',
+        'password_confirmation' => 'short',
+    ]);
+
+    $response->assertSessionHasErrors('password');
+    expect(Hash::check('password', $user->fresh()->password))->toBeFalse();
+});
+
+test('password reset requires a code', function () {
+    $user = User::factory()->create(['password' => 'old-password']);
+
+    $response = $this->post(route('auth.password.update'), [
+        'email' => $user->email,
+        'code' => '',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ]);
+
+    $response->assertSessionHasErrors('code');
+    expect(Hash::check('password', $user->fresh()->password))->toBeFalse();
+});
+
 test('a fresh reset code can be resent', function () {
     Mail::fake();
 
