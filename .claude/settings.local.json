@@ -3,7 +3,8 @@
     "allow": [
       "Bash(php artisan *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(vendor/bin/pint --dirty --format agent)"
     ]
   }
 }
