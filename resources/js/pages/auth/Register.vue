@@ -27,7 +27,7 @@ defineOptions({
 
         <Form
             v-bind="store.form()"
-            :reset-on-success="['password', 'password_confirmation']"
+            :reset-on-success="['password']"
             v-slot="{ errors, processing }"
             class="flex flex-col pt-8"
         >
