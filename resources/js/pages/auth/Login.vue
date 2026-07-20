@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { register } from '@/routes';
+import { request } from '@/routes/auth/password';
 import { store } from '@/routes/login';
 
 defineOptions({
@@ -72,7 +73,7 @@ defineProps<{
                     <Label for="password" class="text-[12px] font-semibold leading-[16px] text-[#314158]">Password</Label>
                     <TextLink
                         v-if="canResetPassword"
-                        :href="'/forgot-password'"
+                        :href="request.url()"
                         class="text-[12px] font-medium leading-[16px] text-[#4F39F6] hover:underline"
                         :tabindex="5"
                     >
