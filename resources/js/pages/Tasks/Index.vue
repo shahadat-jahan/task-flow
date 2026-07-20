@@ -12,6 +12,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import DeleteTaskDialog from '@/components/DeleteTaskDialog.vue';
 import SummaryCard from '@/components/SummaryCard.vue';
+import TaskFormModal from '@/components/TaskFormModal.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -24,7 +25,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useInitials } from '@/composables/useInitials';
-import { destroy, edit, index, show } from '@/routes/tasks';
+import { useTaskModal } from '@/composables/useTaskModal';
+import { destroy, index, show } from '@/routes/tasks';
 
 type Status = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
 type Priority = 'low' | 'medium' | 'high';
@@ -56,9 +58,12 @@ interface TagSummary {
 interface Task {
     id: number;
     title: string;
+    description: string | null;
     status: Status;
     priority: Priority;
     due_date: string | null;
+    assignee_id: number | null;
+    project_id: number | null;
     assignee: UserSummary | null;
     project: ProjectSummary | null;
     tags: TagSummary[];
@@ -94,10 +99,12 @@ const props = defineProps<{
     };
     projects: ProjectSummary[];
     tags: TagSummary[];
+    users: UserSummary[];
     summary: TaskSummary;
 }>();
 
 const { getInitials } = useInitials();
+const { isOpen, editingTask, openEdit, close } = useTaskModal();
 
 const statusOptions: { value: Status; label: string }[] = [
     { value: 'todo', label: 'Todo' },
@@ -531,13 +538,14 @@ function openTask(task: Task): void {
                         </td>
                         <td class="px-4 py-3" @click.stop>
                             <div class="flex items-center justify-end gap-1">
-                                <Link
-                                    :href="edit.url(task.id)"
+                                <button
+                                    type="button"
                                     class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                     :data-test="`edit-task-${task.id}-button`"
+                                    @click="openEdit(task)"
                                 >
                                     <Pencil class="size-4" />
-                                </Link>
+                                </button>
                                 <button
                                     type="button"
                                     class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
@@ -646,6 +654,15 @@ function openTask(task: Task): void {
             :task-title="pendingDelete?.title ?? ''"
             @confirm="confirmDelete"
             @cancel="cancelDelete"
+        />
+
+        <TaskFormModal
+            :open="isOpen"
+            :task="editingTask"
+            :users="users"
+            :projects="projects"
+            :tags="tags"
+            @close="close"
         />
     </div>
 </template>

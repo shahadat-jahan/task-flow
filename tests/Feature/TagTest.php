@@ -26,7 +26,8 @@ test('authenticated user can create a tag', function () {
         ]);
 
     $response->assertSessionHasNoErrors();
-    $response->assertRedirect(route('tags.index'));
+    $response->assertStatus(201)
+        ->assertJsonStructure(['tag' => ['id', 'name', 'color']]);
 
     expect(Tag::where('name', 'Backend')->exists())->toBeTrue();
 });

@@ -184,10 +184,13 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
 - **User "role" not shown.** The `User` model has no role column, so the sidebar
   user block shows `name` + `email` (existing `UserInfo`/avatar pattern) instead
   of a role line.
-- **"+ New Task" button is a no-op.** There is no `tasks.create` route/page (the
-  tasks resource is generated `->except(['create'])`), so the button carries
-  `data-test="new-task-button"` but has no handler; the task-create modal is out
-  of scope for this shell (wiring left for a later prompt).
+- **"+ New Task" button opens the create modal.** It carries `data-test="new-task-button"`
+  and now calls `useTaskModal().openCreate()` — a module-scoped shared store
+  (see the Create/Edit Task modal decision). The modal itself is mounted by
+  `Tasks/Index.vue`, so the button is effectively a no-op on pages that don't
+  render that component (Task Details, Settings). `<Toaster />` is mounted here
+  (in `AppLayout`) so the flash toasts emitted by `store`/`update`/`destroy`
+  render on every authenticated page.
 - **Search input and notification Bell are decorative** (no handlers yet) —
   mirrors the starter kit's existing `Search` button pattern.
 - **Profile and Settings nav rows both point at `profile.edit()`** (i.e.
@@ -253,9 +256,70 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
 - **Row checkboxes are a no-op.** Present and individually toggleable
   (`selectedIds` `Set`), but no bulk action (select-all, bulk delete/status) is
   wired yet — out of scope for this list page; left for a later prompt.
-- **"Create your first task" (empty state) and AppLayout's "+ New Task" are no-ops.**
-  There is no `tasks.create` route/page, so both carry no handler.
+- **"Create your first task" (empty state) is a no-op.** There is no
+  `tasks.create` route/page; the empty-state CTA carries `data-test="new-task-button"`
+  but no handler. AppLayout's "+ New Task" button, by contrast, is now wired to
+  open the create modal (see the Create/Edit Task modal decision).
 - **`+ Filters` is not implemented** — the four inline Selects (plus search) cover
   the agreed filter set; the visual "+ Filters" affordance from the design is
   omitted rather than built as a non-functional button.
+
+## Create/Edit Task modal (Prompt: shared modal for task create + edit)
+
+### One modal, two modes, driven by a shared store
+- `TaskFormModal.vue` is a single reka-ui `Dialog` (controlled: `:open` +
+  `@update:open` → `emit('close')`) that handles both Create and Edit. The header
+  title/subtext and the footer primary button ("Create Task" / "Save Changes")
+  switch on whether the `task` prop is present; in Edit mode the footer also
+  shows a red "Delete" that flips to an inline two-step "Really delete?" confirm
+  (no separate dialog). Form submission uses Inertia `useForm` (`form.post` for
+  create, `form.put` for edit, `router.delete` for delete); 422 errors surface
+  via `form.errors.*` under each field. Success → `emit('close')`; the backend
+  flashes a `toast` that `AppLayout`'s `<Toaster />` surfaces.
+- Opening is coordinated through a **module-scoped** `useTaskModal` composable
+  (`isOpen` / `editingTask` refs + `openCreate` / `openEdit` / `close`). This lets
+  the global AppLayout top-bar button and the page-level modal share state without
+  an event bus. `openEdit(task)` takes the row `Task` object directly — its
+  `TaskFormTask` shape only adds `description` / `assignee_id` / `project_id` to
+  the page's `Task` interface (all present in `TaskResource` at runtime; the page
+  type just omitted them).
+
+### Inline tag creation + Assignee select
+- The Tags `<Select multiple>` is backed by a local `availableTags` ref seeded from
+  the `tags` prop, so a tag created inline appears immediately without a reload.
+  `addTag()` does a raw `fetch` POST to `tags.store` — Inertia v3 removed axios, so
+  we read the non-httpOnly `XSRF-TOKEN` cookie and send it as `X-XSRF-TOKEN` (the
+  standard Laravel SPA pattern). New tags are created with a default gray
+  `#6b7280` because `StoreTagRequest` requires a `color` hex.
+- Assignee is a `<Select>` over the new `users` prop (value = `String(id)`); an
+  Unassigned sentinel `'none'` is normalized back to `''` on submit. Due Date is a
+  native `<input type="date">`. Description uses a native `<textarea>` (there is no
+  `textarea` UI component), styled with the `Input.vue` Tailwind classes.
+
+### Backend changes (small)
+- `TagController::store()` now branches on `$request->inertia()`: non-Inertia
+  requests (the modal's `fetch`) get `JSON:201 { tag: TagResource }`; Inertia
+  requests still redirect to `tags.index`. This keeps the starter-kit Tags page
+  working while enabling in-modal inline creation.
+- `TaskController@index` and `DashboardController@index` now also pass `users`
+  (`UserResource` collection) for the Assignee select, plus `projects` / `tags` /
+  `users` via `->resolve($request)` so they reach the client as **plain arrays**
+  (not the `{ data: [...] }` envelope that `JsonResource::collection` would
+  otherwise wrap them in). This also fixes a latent bug: the list page's existing
+  filter `<Select>`s were iterating a wrapped `data` key.
+
+### Tests
+- `TagTest` create assertion changed from `assertRedirect(tags.index)` to
+  `assertStatus(201)` + `assertJsonStructure(['tag' => ['id','name','color']])`.
+- `TaskTest` list assertion gained `->has('users')` / `users.0.{id,name,email}`
+  to guard the new prop. Pint clean; full suite green.
+
+### Deviations
+- **`<Toaster />` mounted in `AppLayout`** (was only in the orphaned starter
+  layouts), so backend flash toasts are now visible everywhere.
+- **Inline delete confirm** (not `DeleteTaskDialog`) per the chosen UX.
+- **"+ New Task" is a no-op on non-list pages** — no modal is rendered there.
+- **Collections now resolve to plain arrays** (documented above) — a behavior
+  change from the default `JsonResource::collection` wrapping, made to keep the
+  client-side selects simple.
 

@@ -18,9 +18,11 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Toaster } from '@/components/ui/sonner';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useInitials } from '@/composables/useInitials';
+import { useTaskModal } from '@/composables/useTaskModal';
 import { dashboard } from '@/routes';
 import { edit as profileEdit } from '@/routes/profile';
 import { index as tasksIndex } from '@/routes/tasks';
@@ -43,6 +45,7 @@ const projects = computed(() => page.props.sidebarProjects ?? []);
 
 const { isCurrentUrl } = useCurrentUrl();
 const { getInitials } = useInitials();
+const { openCreate } = useTaskModal();
 
 const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
@@ -180,8 +183,11 @@ const mainNavItems: NavItem[] = [
                         />
                     </div>
 
-                    <!-- Task-create modal is out of scope for this shell -->
-                    <Button type="button" data-test="new-task-button">
+                    <Button
+                        type="button"
+                        data-test="new-task-button"
+                        @click="openCreate()"
+                    >
                         + New Task
                     </Button>
 
@@ -201,5 +207,7 @@ const mainNavItems: NavItem[] = [
                 <slot />
             </main>
         </div>
+
+        <Toaster />
     </div>
 </template>

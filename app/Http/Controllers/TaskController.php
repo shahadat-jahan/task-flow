@@ -8,9 +8,11 @@ use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\TagResource;
 use App\Http\Resources\TaskResource;
+use App\Http\Resources\UserResource;
 use App\Models\Project;
 use App\Models\Tag;
 use App\Models\Task;
+use App\Models\User;
 use App\Services\TaskSummaryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,8 +56,9 @@ class TaskController extends Controller
                 'sort' => $request->sort,
                 'direction' => $request->direction,
             ],
-            'projects' => ProjectResource::collection(Project::orderBy('name')->get()),
-            'tags' => TagResource::collection(Tag::orderBy('name')->get()),
+            'projects' => ProjectResource::collection(Project::orderBy('name')->get())->resolve($request),
+            'tags' => TagResource::collection(Tag::orderBy('name')->get())->resolve($request),
+            'users' => UserResource::collection(User::orderBy('name')->get())->resolve($request),
             'summary' => $this->summary->summarize(),
         ]);
     }
