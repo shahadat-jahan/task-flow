@@ -37,3 +37,34 @@ Note on `password.confirm` / `password.confirmation` routes: in this Fortify
 version these routes are **always** registered and are NOT gated by a feature
 flag (there is no `Features::passwordConfirmation()` method). They cannot be
 disabled via config. This is default Fortify behavior, not an enabled feature.
+
+## Projects & Tags backend (Prompt: backend CRUD for projects + tags)
+
+### Projects — global visibility, no per-user scoping
+- `ProjectController` index/store/update/destroy are open to any authenticated
+  user. The `project_policy` / ownership checks were intentionally **not** added
+  because the design does not show per-user project scoping — all projects are
+  visible/editable by any authenticated user. `store()` sets `owner_id` to the
+  current user (required by the `projects.owner_id` column) but this is just a
+  creation marker, not an authorization boundary.
+
+### Tags — lightweight, no full CRUD
+- Only `TagController::index` + `TagController::store` were built. `update` /
+  `destroy` routes/controllers were **deliberately omitted** — full tag
+  management UI is out of scope for now. Tag management happens inline during
+  task create/edit (the `tags.store` endpoint backs inline tag creation there).
+
+### Build/asset fix (side effect of disabling resetPasswords earlier)
+Disabling `Features::resetPasswords()` regenerated `@/routes/password` without
+the `email` / `update` / `request` exports, which broke `npm run build`:
+- Removed the now-orphaned `resources/js/pages/auth/ForgotPassword.vue` and
+  `ResetPassword.vue` (already flagged as orphaned above).
+- Removed the dead "Forgot your password?" `TextLink` (and its `request()`
+  import) from `Login.vue`; `canResetPassword` is always `false` now, so the
+  link never rendered anyway.
+
+### Placeholder pages added
+Minimal `Projects/Index.vue` and `Tags/Index.vue` were added (single-root,
+`AppLayout` default, breadcrumb) so the Inertia renders resolve in the Vite
+manifest. They are placeholders — the real Figma UI is built in a later prompt.
+
