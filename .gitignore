@@ -1,4 +1,4 @@
-/.claude/settings.local.json
+*.local.*
 /.phpunit.cache
 /bootstrap/ssr
 /node_modules
