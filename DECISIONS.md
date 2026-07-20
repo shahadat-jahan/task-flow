@@ -70,12 +70,29 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
 
 ## Tasks backend (Prompt: CRUD + project/tag associations)
 
-### Summary logic — no shared DashboardController
-- The task list summary counts (`statusCounts()`) live in a new
-  `App\Services\TaskSummaryService`, **not** in a `DashboardController`. The
-  dashboard is a static `Route::inertia('dashboard', 'Dashboard')` with no
-  controller, so there was no existing summary logic to reuse. The service is
-  the single source for status counts and is injected into `TaskController`.
+### Summary service (shared by Tasks index and Dashboard)
+- `App\Services\TaskSummaryService::summarize()` is the single source of the
+  summary cards. It returns `total_tasks`, `by_status` and `by_priority`
+  (both **zero-filled** for every `TaskStatus` / `TaskPriority` enum value) and
+  `overdue_count` (tasks whose `due_date < today()` and whose status is NOT
+  `done` / `cancelled`). Built from two grouped `count` queries plus one
+  overdue `count` — no N-per-status queries.
+- Both `TaskController@index` and `DashboardController@index` inject the service
+  and expose the result as the `summary` prop.
+
+### Dashboard == Tasks view (deliberate, not a duplicate page)
+- The design screenshots show the Dashboard and Tasks/Index as near-identical
+  layouts (same task table with the same summary cards above it). Rather than
+  build a second page, `GET /dashboard` (`DashboardController@index`) **renders
+  the shared `Tasks/Index` component** and reuses `TaskSummaryService`. So
+  `/dashboard` and `/tasks` are functionally the same screen.
+- `/dashboard` was moved out of the `['auth','verified']` group into the plain
+  `['auth']` group so it matches `/tasks` exactly (email verification is
+  disabled per the auth decision, so the `verified` gate would otherwise
+  diverge the two identical routes).
+- `resources/js/pages/Dashboard.vue` is now **unrouted / orphaned** — it is no
+  longer the target of any route. Left in place rather than deleted; if a
+  distinct dashboard UI is ever wanted it can be routed again.
 
 ### Inertia resource shape — single vs collection
 - List/Index uses `TaskResource::collection($tasks)` (paginated), so the

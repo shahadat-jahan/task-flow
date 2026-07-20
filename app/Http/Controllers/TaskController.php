@@ -56,7 +56,7 @@ class TaskController extends Controller
             ],
             'projects' => ProjectResource::collection(Project::orderBy('name')->get()),
             'tags' => TagResource::collection(Tag::orderBy('name')->get()),
-            'summary' => $this->summary->statusCounts(),
+            'summary' => $this->summary->summarize(),
         ]);
     }
 
