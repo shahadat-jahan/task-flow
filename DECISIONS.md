@@ -67,7 +67,7 @@ These were added to match the **full Figma design**, not as scope creep:
 
 ## Implementation history (per-prompt log)
 
-## Auth scaffolding review (Prompt: Fortify register/login/logout)
+## Auth scaffolding review
 
 ### Routes — confirmed present (Fortify default, wired through Inertia)
 - `GET|HEAD  /register`  → `register`            (RegisteredUserController@create)
@@ -105,7 +105,7 @@ version these routes are **always** registered and are NOT gated by a feature
 flag (there is no `Features::passwordConfirmation()` method). They cannot be
 disabled via config. This is default Fortify behavior, not an enabled feature.
 
-## Projects & Tags backend (Prompt: backend CRUD for projects + tags)
+## Projects & Tags backend
 
 ### Projects — global visibility, no per-user scoping
 - `ProjectController` index/store/update/destroy are open to any authenticated
@@ -135,7 +135,7 @@ Minimal `Projects/Index.vue` and `Tags/Index.vue` were added (single-root,
 `AppLayout` default, breadcrumb) so the Inertia renders resolve in the Vite
 manifest. They are placeholders — the real Figma UI is built in a later prompt.
 
-## Tasks backend (Prompt: CRUD + project/tag associations)
+## Tasks backend
 
 ### Summary service (shared by Tasks index and Dashboard)
 - `App\Services\TaskSummaryService::summarize()` is the single source of the
@@ -172,7 +172,7 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
   `task` object. Nested `UserResource`/`ProjectResource`/`TagResource` and the
   `comments.*.user` / `attachments.*.uploader` maps resolve recursively.
 
-## Auth pages restyle (Prompt: Figma split-screen)
+## Auth pages restyle
 
 ### Visual-only change, logic preserved
 - `resources/js/layouts/AuthLayout.vue` was rewritten from a centered-card shell
@@ -202,7 +202,7 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
   variant) was left as-is; `app.ts` resolves `auth/*` → the top-level
   `AuthLayout.vue` that was rewritten.
 
-## App shell (Prompt: shared authenticated shell for Dashboard/Tasks/Task Details)
+## App shell
 
 ### Rebuilt bespoke shell, did not extend the reka-ui starter shell
 - `resources/js/layouts/AppLayout.vue` was **rewritten** from a thin wrapper
@@ -266,7 +266,7 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
 - `app.ts` `layout` resolver left unchanged; `breadcrumbs` prop still accepted by
   `AppLayout` for backward compatibility but no longer rendered.
 
-## Tasks list page (Prompt: Dashboard/Tasks list UI)
+## Tasks list page
 
 ### Shared by `/dashboard` and `/tasks`
 - Both routes render `Tasks/Index.vue`. `GET /dashboard` (`DashboardController@index`)
@@ -331,7 +331,7 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
   the agreed filter set; the visual "+ Filters" affordance from the design is
   omitted rather than built as a non-functional button.
 
-## Create/Edit Task modal (Prompt: shared modal for task create + edit)
+## Create/Edit Task modal
 
 ### One modal, two modes, driven by a shared store
 - `TaskFormModal.vue` is a single reka-ui `Dialog` (controlled: `:open` +
@@ -390,7 +390,7 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
   change from the default `JsonResource::collection` wrapping, made to keep the
   client-side selects simple.
 
-## Polish pass (Prompt: empty states, flash messages, responsive, tests)
+## Polish pass
 
 ### `Tasks/Show.vue` was a placeholder (core-CRUD gap, now built)
 - The `tasks.show` route + `TaskController@show` shipped earlier, but the Vue
