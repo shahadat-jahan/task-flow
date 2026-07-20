@@ -68,3 +68,24 @@ Minimal `Projects/Index.vue` and `Tags/Index.vue` were added (single-root,
 `AppLayout` default, breadcrumb) so the Inertia renders resolve in the Vite
 manifest. They are placeholders — the real Figma UI is built in a later prompt.
 
+## Tasks backend (Prompt: CRUD + project/tag associations)
+
+### Summary logic — no shared DashboardController
+- The task list summary counts (`statusCounts()`) live in a new
+  `App\Services\TaskSummaryService`, **not** in a `DashboardController`. The
+  dashboard is a static `Route::inertia('dashboard', 'Dashboard')` with no
+  controller, so there was no existing summary logic to reuse. The service is
+  the single source for status counts and is injected into `TaskController`.
+
+### Inertia resource shape — single vs collection
+- List/Index uses `TaskResource::collection($tasks)` (paginated), so the
+  prop is `tasks.data` (standard pagination envelope).
+- `show()` / `edit()` return a **single** task. A bare `new TaskResource($task)`
+  is a `Responsable`, which Inertia resolves via `toResponse()` and wraps in a
+  `data` key — giving a `task.data.*` shape. To keep the details/edit pages
+  ergonomic (`task.title`, not `task.data.title`), the controller passes
+  `(new TaskResource($task))->resolve($request)` instead, producing a flat
+  `task` object. Nested `UserResource`/`ProjectResource`/`TagResource` and the
+  `comments.*.user` / `attachments.*.uploader` maps resolve recursively.
+
+
