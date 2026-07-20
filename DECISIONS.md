@@ -48,7 +48,7 @@ ownership checks used by the policy/abort guards.
   (`storeAs(..., 'public')`), so `php artisan storage:link` is required for the
   download links to resolve.
 
-## Improvements beyond the PDF (intentional scope additions)
+## Improvements
 
 These were added to match the **full Figma design**, not as scope creep:
 

@@ -11,75 +11,81 @@ defineProps<{
 </script>
 
 <template>
-    <div class="min-h-svh">
-        <div class="grid min-h-svh md:grid-cols-[45%_55%]">
-            <!-- Left panel: gradient branding / testimonial / stats (hidden below md) -->
+    <div class="min-h-screen w-full bg-[#F8FAFC] font-['Inter'] selection:bg-[#4F39F6] selection:text-white">
+        <div class="grid min-h-screen md:grid-cols-[45%_55%] lg:grid-cols-2">
+
+            <!-- Left Panel: Gradient and Stats Design -->
             <div
-                class="relative hidden flex-col bg-gradient-to-br from-purple-600 to-indigo-600 p-10 text-white md:flex"
+                class="relative hidden h-full flex-col justify-between overflow-hidden bg-gradient-to-br from-[#4F39F6] via-[#432DD7] to-[#7008E7] p-12 text-white md:flex"
             >
-                <Link
+                <!-- Background Decorative Circles -->
+                <div class="absolute -top-[192px] left-[704px] h-[384px] w-[384px] rounded-full bg-white/5"></div>
+                <div class="absolute top-[862px] left-[-85.33px] h-[256px] w-[256px] rounded-full bg-white/5"></div>
+
+                <!-- Top Section: Logo and App Name -->
+                <div class="relative z-10 flex flex-row items-center gap-3">
+                    <Link
                     :href="home()"
                     class="flex items-center gap-2 text-lg font-semibold"
                 >
                     <AppLogoIcon class="size-8 fill-current text-white" />
                     <span>TaskFlow</span>
                 </Link>
+                </div>
 
-                <div class="flex flex-1 items-center">
-                    <div class="max-w-md">
-                        <p class="text-xl leading-relaxed italic">
-                            "TaskFlow completely transformed how our team
-                            collaborates. We ship 40% faster now."
-                        </p>
-                        <div class="mt-6 flex items-center gap-3">
-                            <div
-                                class="flex size-10 items-center justify-center rounded-full bg-white/20 font-semibold"
-                            >
-                                MR
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium">
-                                    Maya Rodriguez
-                                </p>
-                                <p class="text-sm text-white/70">
-                                    CTO, Meridian Labs
-                                </p>
-                            </div>
+                <!-- Middle Section: Testimonial & Quote -->
+                <div class="relative z-10 flex flex-col items-start gap-4 max-w-[842px]">
+                    <blockquote class="text-[20px] font-medium leading-[32px] text-white/90">
+                        "TaskFlow completely transformed how our team collaborates. We ship 40% faster now."
+                    </blockquote>
+                    <div class="flex flex-row items-center gap-3 pt-4">
+                        <div
+                            class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-[14px] font-bold"
+                        >
+                            MR
+                        </div>
+                        <div class="flex flex-col items-start">
+                            <span class="text-[14px] font-semibold leading-[20px] text-white">Maya Rodriguez</span>
+                            <span class="text-[12px] font-normal leading-[16px] text-white/60">CTO, Meridian Labs</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4">
-                    <div>
-                        <p class="text-2xl font-bold">10K+</p>
-                        <p class="text-sm text-white/70">Teams</p>
+                <!-- Bottom Section: Platform Grid Stats -->
+                <div class="relative z-10 grid grid-cols-3 border-t border-white/10 pt-6 text-center">
+                    <div class="flex flex-col items-center">
+                        <span class="text-[20px] font-bold leading-[28px]">10K+</span>
+                        <span class="text-[12px] font-normal leading-[16px] text-white/60">Teams</span>
                     </div>
-                    <div>
-                        <p class="text-2xl font-bold">99.9%</p>
-                        <p class="text-sm text-white/70">Uptime</p>
+                    <div class="flex flex-col items-center">
+                        <span class="text-[20px] font-bold leading-[28px]">99.9%</span>
+                        <span class="text-[12px] font-normal leading-[16px] text-white/60">Uptime</span>
                     </div>
-                    <div>
-                        <p class="text-2xl font-bold">4.9/5</p>
-                        <p class="text-sm text-white/70">Rating</p>
+                    <div class="flex flex-col items-center">
+                        <span class="text-[20px] font-bold leading-[28px]">4.9/5</span>
+                        <span class="text-[12px] font-normal leading-[16px] text-white/60">Rating</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Right panel: white, centered form -->
-            <div class="flex items-center justify-center p-8">
-                <div class="w-full max-w-sm">
-                    <div class="mb-6 space-y-2 text-center">
-                        <h1 class="text-2xl font-semibold tracking-tight">
+            <!-- Right Panel: White Content Layout Area -->
+            <div class="flex items-center justify-center p-8 bg-[#F8FAFC]">
+                <div class="w-full max-w-[448px] flex flex-col">
+
+                    <!-- Dynamic Headers inside Forms Slot context -->
+                    <div class="mb-8 space-y-2" v-if="title || description">
+                        <h1 v-if="title" class="text-[24px] font-bold leading-[32px] text-[#0F172B]">
                             {{ title }}
                         </h1>
                         <p
                             v-if="description"
-                            class="text-sm text-muted-foreground"
+                            class="text-[14px] leading-[20px] text-[#62748E]"
                         >
                             {{ description }}
                         </p>
                     </div>
 
+                    <!-- Inner Login/Register or Forgot Password Forms -->
                     <slot />
                 </div>
             </div>

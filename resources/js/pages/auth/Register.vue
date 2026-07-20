@@ -17,7 +17,7 @@ defineProps<{
 defineOptions({
     layout: {
         title: 'Create your account',
-        description: 'Enter your details below to create your account',
+        description: 'Start managing tasks like a pro - it\'s free forever',
     },
 });
 </script>
@@ -25,96 +25,127 @@ defineOptions({
 <template>
     <Head title="Register" />
 
-    <Form
-        v-bind="store.form()"
-        :reset-on-success="['password', 'password_confirmation']"
-        v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
-    >
-        <div class="grid gap-6">
-            <div class="grid gap-2">
-                <Label for="name">Full name</Label>
-                <Input
-                    id="name"
-                    type="text"
-                    required
-                    autofocus
-                    :tabindex="1"
-                    autocomplete="name"
-                    name="name"
-                    placeholder="Full name"
-                />
-                <InputError :message="errors.name" />
+        <Form
+            v-bind="store.form()"
+            :reset-on-success="['password', 'password_confirmation']"
+            v-slot="{ errors, processing }"
+            class="flex flex-col pt-8"
+        >
+            <div class="flex flex-col gap-4">
+                <!-- Full name Field -->
+                <div class="flex flex-col items-start gap-1.5">
+                    <Label for="name" class="text-[12px] font-semibold leading-[16px] text-[#314158]">Full name</Label>
+                    <div class="relative w-full h-[42px]">
+                        <!-- User Icon Spec -->
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#90A1B9] z-10">
+                            <svg class="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </span>
+                        <Input
+                            id="name"
+                            type="text"
+                            required
+                            autofocus
+                            :tabindex="1"
+                            autocomplete="name"
+                            name="name"
+                            placeholder="Alex Morgan"
+                            class="absolute inset-0 h-[42px] w-full bg-white border border-[#E2E8F0] rounded-[16px] pl-[40px] pr-4 text-[14px] font-normal leading-[20px] text-[#0F172B] placeholder-[#90A1B9] focus-visible:ring-1 focus-visible:ring-[#4F39F6] focus-visible:border-[#4F39F6]"
+                        />
+                    </div>
+                    <InputError :message="errors.name" />
+                </div>
+
+                <!-- Work email Field -->
+                <div class="flex flex-col items-start gap-1.5">
+                    <Label for="email" class="text-[12px] font-semibold leading-[16px] text-[#314158]">Work email</Label>
+                    <div class="relative w-full h-[42px]">
+                        <!-- Mail Icon Spec -->
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#90A1B9] z-10">
+                            <svg class="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                        </span>
+                        <Input
+                            id="email"
+                            type="email"
+                            required
+                            :tabindex="2"
+                            autocomplete="email"
+                            name="email"
+                            placeholder="you@company.com"
+                            class="absolute inset-0 h-[42px] w-full bg-white border border-[#E2E8F0] rounded-[16px] pl-[40px] pr-4 text-[14px] font-normal leading-[20px] text-[#0F172B] placeholder-[#90A1B9] focus-visible:ring-1 focus-visible:ring-[#4F39F6] focus-visible:border-[#4F39F6]"
+                        />
+                    </div>
+                    <InputError :message="errors.email" />
+                </div>
+
+                <!-- Password Field -->
+                <div class="flex flex-col items-start gap-1.5">
+                    <Label for="password" class="text-[12px] font-semibold leading-[16px] text-[#314158]">Password</Label>
+                    <div class="relative w-full h-[42px]">
+                        <!-- Lock Icon Spec -->
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#90A1B9] z-10">
+                            <svg class="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </span>
+                        <PasswordInput
+                            id="password"
+                            required
+                            :tabindex="3"
+                            autocomplete="new-password"
+                            name="password"
+                            placeholder="Min. 8 characters"
+                            :passwordrules="passwordRules"
+                            class="!h-[42px] w-full bg-white border border-[#E2E8F0] !rounded-[16px] pl-[40px] pr-10 text-[14px] font-normal leading-[20px] text-[#0F172B] placeholder-[#90A1B9] focus-visible:ring-1 focus-visible:ring-[#4F39F6] focus-visible:border-[#4F39F6]"
+                        />
+                    </div>
+                    <!-- Password Strength Indicator Bars -->
+                    <div class="flex flex-row w-full gap-1 pt-2">
+                        <div class="h-1 flex-1 bg-[#E2E8F0] rounded-full"></div>
+                        <div class="h-1 flex-1 bg-[#E2E8F0] rounded-full"></div>
+                        <div class="h-1 flex-1 bg-[#E2E8F0] rounded-full"></div>
+                        <div class="h-1 flex-1 bg-[#E2E8F0] rounded-full"></div>
+                    </div>
+                    <InputError :message="errors.password" />
+                </div>
+
+                <!-- Submit Button -->
+                <Button
+                    type="submit"
+                    class="w-full h-[44px] bg-[#4F39F6] hover:bg-[#432DD7] text-white text-[14px] font-semibold rounded-[16px] shadow-[0px_1px_3px_#C6D2FF,0px_1px_2px_-1px_#C6D2FF] transition-colors mt-2"
+                    :tabindex="5"
+                    :disabled="processing"
+                    data-test="register-user-button"
+                >
+                    <Spinner v-if="processing" class="mr-2 h-4 w-4 border-white" />
+                    Create account
+                </Button>
+
+                <!-- Terms & Privacy Text -->
+                <p class="text-center text-[12px] font-normal leading-[16px] text-[#90A1B9] px-2 py-1.5">
+                    By creating an account, you agree to our
+                    <a href="#" class="text-[16px] font-medium leading-[24px] text-[#4F39F6] hover:underline mx-0.5">Terms</a>
+                    and
+                    <a href="#" class="text-[16px] font-medium leading-[24px] text-[#4F39F6] hover:underline mx-0.5">Privacy Policy</a>.
+                </p>
             </div>
 
-            <div class="grid gap-2">
-                <Label for="email">Work email</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    required
-                    :tabindex="2"
-                    autocomplete="email"
-                    name="email"
-                    placeholder="you@company.com"
-                />
-                <InputError :message="errors.email" />
+            <!-- Already have an account footer -->
+            <div class="text-center text-[12px] font-normal leading-[16px] text-[#62748E] pt-6 flex items-center justify-center gap-1">
+                Already have an account?
+                <TextLink
+                    :href="login()"
+                    class="text-[16px] font-semibold leading-[24px] text-[#4F39F6] hover:underline"
+                    :tabindex="6"
+                >
+                    Sign in
+                </TextLink>
             </div>
-
-            <div class="grid gap-2">
-                <Label for="password">Password</Label>
-                <PasswordInput
-                    id="password"
-                    required
-                    :tabindex="3"
-                    autocomplete="new-password"
-                    name="password"
-                    placeholder="Password"
-                    :passwordrules="passwordRules"
-                />
-                <p class="text-xs text-muted-foreground">Min. 8 characters</p>
-                <InputError :message="errors.password" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="password_confirmation">Confirm password</Label>
-                <PasswordInput
-                    id="password_confirmation"
-                    required
-                    :tabindex="4"
-                    autocomplete="new-password"
-                    name="password_confirmation"
-                    placeholder="Confirm password"
-                    :passwordrules="passwordRules"
-                />
-                <InputError :message="errors.password_confirmation" />
-            </div>
-
-            <Button
-                type="submit"
-                class="mt-2 w-full"
-                tabindex="5"
-                :disabled="processing"
-                data-test="register-user-button"
-            >
-                <Spinner v-if="processing" />
-                Create Account
-            </Button>
-
-            <p class="px-1 text-center text-xs text-muted-foreground">
-                By creating an account you agree to our Terms of Service and
-                Privacy Policy.
-            </p>
-        </div>
-
-        <div class="text-center text-sm text-muted-foreground">
-            Already have an account?
-            <TextLink
-                :href="login()"
-                class="underline underline-offset-4"
-                :tabindex="6"
-                >Sign in</TextLink
-            >
-        </div>
-    </Form>
+        </Form>
 </template>

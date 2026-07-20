@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import type { LinkComponentBaseProps, Method } from '@inertiajs/core';
 import { Link } from '@inertiajs/vue3';
+import { cn } from '@/lib/utils'; // যদি আপনার প্রোজেক্টে shadcn এর cn হেল্পার থাকে
 
 type Props = {
     href: LinkComponentBaseProps['href'];
     tabindex?: number;
     method?: Method;
     as?: string;
+    class?: string;
 };
 
 defineProps<Props>();
@@ -18,7 +20,10 @@ defineProps<Props>();
         :tabindex="tabindex"
         :method="method"
         :as="as"
-        class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+        :class="cn(
+            'text-[16px] font-semibold text-[#4F39F6] transition-all hover:underline underline-offset-4',
+            $props.class
+        )"
     >
         <slot />
     </Link>

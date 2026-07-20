@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $users = User::factory(5)->create();
+        $users = User::factory(5)->create(['password' => '12345678']);
 
         $projectNames = ['Product', 'Growth', 'Infrastructure', 'Design'];
         $projectColors = ['#7C3AED', '#2563EB', '#059669', '#DB2777'];
