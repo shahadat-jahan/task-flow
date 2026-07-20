@@ -1,5 +1,72 @@
 # Decisions
 
+## Design Decisions
+
+### Monolith Laravel + Inertia + Vue (no separate API tier)
+The app is a server-rendered SPA: every route returns an Inertia response and the
+client is a single Vue 3 application. There is deliberately **no REST API layer**.
+Rationale: one deployable unit, shared route/type definitions via Wayfinder
+(`@/routes`, `@/actions`) so the client never hard-codes URLs, and no CORS to
+manage. Vite dev server proxies to the PHP app (`composer run dev` runs both).
+
+### API Resources used internally for data shaping
+`TaskResource` / `UserResource` / `ProjectResource` / `TagResource` shape the
+data sent to Inertia props — and a single task uses `(new TaskResource($task))
+->resolve($request)` to produce a **flat** `task` object instead of the default
+`data`-wrapped shape. This was chosen for consistent, testable serialization even
+though there is no external API consumer.
+
+### Schema / enum approach
+`App\Enums\TaskStatus` (`todo`, `in_progress`, `in_review`, `done`, `cancelled`)
+and `App\Enums\TaskPriority` (`low`, `medium`, `high`) are backed enums (DB
+strings), with indexed columns on `status` / `priority` / `assignee_id` /
+`project_id`. The `tag_task` pivot uses a composite primary key, and `created_by`
+(task) / `uploaded_by` (attachment) foreign keys back the authorship and
+ownership checks used by the policy/abort guards.
+
+## Assumptions (where the brief / Figma was unclear)
+
+- **OTP / Google auth** — Out of scope. Only Fortify register/login/logout are
+  wired; email verification and two-factor auth are disabled. The "Continue with
+  Google" button is a visual stub with no handler.
+- **Dashboard vs Tasks/Index** — Merged into one shared page. `GET /dashboard`
+  renders the same `Tasks/Index` component as `GET /tasks` (a deliberate decision,
+  not a duplicate page). The `verified` gate was removed from `/dashboard` so the
+  two identical routes behave the same.
+- **Activity feed fidelity** — No activity feed was built. There is no
+  activity-log package in the project; task **comments** are the visible activity
+  record on the Task Details page.
+- **Tag creation constraints** — Tags are created **inline only**, during task
+  create/edit via `tags.store`, with a default gray `#6b7280` (the `StoreTagRequest`
+  colour is required). No standalone tag-management CRUD (update/destroy omitted).
+- **Trend delta computation** — Summary-card trends are computed by
+  week-over-week **comparison queries** (current totals vs. records created before
+  one week ago), not a time-series snapshot. Documented approximation: each task's
+  *current* status is assumed to also apply a week ago. No migration was needed.
+- **Inertia file upload** — Attachments use `useForm({ file })` with
+  `forceFormData: true` and are stored on the `public` disk
+  (`storeAs(..., 'public')`), so `php artisan storage:link` is required for the
+  download links to resolve.
+
+## Improvements beyond the PDF (intentional scope additions)
+
+These were added to match the **full Figma design**, not as scope creep:
+
+- **Projects** — a `projects` table + model, listed in the sidebar with live task
+  counts. The Figma task list shows a Project filter and colour dot, so projects
+  make that meaningful rather than decorative.
+- **Tags** — colour-coded tags with inline creation while editing a task, matching
+  the Figma tag chips (the PDF only hinted at tags via the filter).
+- **Comments** — a per-task comment thread (add / delete your own) on the Task
+  Details page, providing the visible activity record the Figma detail view shows.
+- **Attachments** — per-task file upload / download / delete (own only) on the
+  Task Details page, stored on the `public` disk; matches the Figma attachment
+  area.
+
+---
+
+## Implementation history (per-prompt log)
+
 ## Auth scaffolding review (Prompt: Fortify register/login/logout)
 
 ### Routes — confirmed present (Fortify default, wired through Inertia)

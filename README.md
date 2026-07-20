@@ -1,120 +1,136 @@
 # Task Flow
 
-A task management application built with Laravel, Inertia.js, Vue, and Tailwind CSS.
+A task management application built as a monolithic **Laravel 13 + Inertia.js v3 +
+Vue 3 + Tailwind CSS v4** app. There is no separate API tier — pages are rendered
+server-side as Inertia responses and the client is a Vue SPA. (See
+[DECISIONS.md](./DECISIONS.md) for the architecture rationale and the assumptions
+made where the original brief was ambiguous.)
 
 ## Features
 
-- **Task Management**: Create, read, update, and delete tasks
-- **Project Organization**: Group tasks within projects
-- **Tagging System**: Categorize tasks with colored tags
-- **Task Details**: Status, priority, due dates, assignees
-- **User Management**: Authentication via Laravel Fortify
-- **Real-time Updates**: Powered by Inertia.js
+- **Task CRUD** via a single Create/Edit modal (status, priority, due date,
+  assignee, project, tags, description).
+- **Dashboard / Tasks list** — one shared page with summary cards (totals +
+  week-over-week trends), client-driven filters (status, priority, project, tag,
+  free-text search), responsive table → mobile cards, and a delete dialog.
+- **Task Details** — inline status update, comments (list / add / delete your
+  own), and attachments (upload / download / delete your own).
+- **Projects & Tags** — tasks are grouped by project; tags are created inline
+  while creating/editing a task (no separate tag-management screen).
+- **Authentication** via Laravel Fortify (register, login, logout).
 
-## Database Schema
+## Prerequisites
 
-### Users Table
-Standard Laravel users table (from authentication scaffolding) with additional email verification column (unused).
+- PHP **8.4**
+- [Composer](https://getcomposer.org/)
+- Node.js + npm
+- MySQL
 
-### Projects Table
-- `id` – primary key
-- `name` – project name
-- `color` – hex code (default: `#7C3AED` – purple)
-- `owner_id` – foreign key to users (cascade on delete)
-- `timestamps`
+## Setup
 
-### Tasks Table
-- `id` – primary key
-- `title` – required string
-- `description` – nullable text
-- `status` – enum (`todo`, `in_progress`, `in_review`, `done`, `cancelled`) – default `todo`, indexed
-- `priority` – enum (`low`, `medium`, `high`) – default `medium`, indexed
-- `due_date` – nullable date
-- `assignee_id` – foreign key to users (null on delete, nullable)
-- `created_by` – foreign key to users (cascade on delete)
-- `project_id` – foreign key to projects (null on delete, nullable)
-- `timestamps`
-- Indexes on `status`, `priority`, `assignee_id`, `project_id`
+1. Clone the repository and enter the directory:
 
-### Tags Table
-- `id` – primary key
-- `name` – unique string
-- `color` – hex code
-- `timestamps`
+   ```bash
+   git clone <repo-url> task-flow
+   cd task-flow
+   ```
 
-### Tag Task Pivot Table
-- `task_id` – foreign key to tasks (cascade on delete)
-- `tag_id` – foreign key to tags (cascade on delete)
-- Composite primary key (`task_id`, `tag_id`)
-
-## Enums
-- `App\Enums\TaskStatus`
-- `App\Enums\TaskPriority`
-
-## Relationships
-- **User**:
-  - `assignedTasks()` – tasks where user is assignee
-  - `createdTasks()` – tasks created by user
-  - `projects()` – projects owned by user
-- **Project**:
-  - `owner()` – belongs to user
-  - `tasks()` – has many tasks
-- **Task**:
-  - `assignee()` – belongs to user
-  - `creator()` – belongs to user
-  - `project()` – belongs to project
-  - `tags()` – belongs to many tags
-
-## Installation
-
-1. Clone the repository
 2. Install PHP dependencies:
+
    ```bash
    composer install
    ```
+
 3. Install Node.js dependencies:
+
    ```bash
    npm install
    ```
-4. Copy `.env.example` to `.env` and configure your database connection
-5. Generate application key:
+
+4. Create your environment file and configure the database. The starter kit
+   defaults to **SQLite**, but this project is configured for **MySQL**:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Then set the `DB_*` variables in `.env`:
+
+   ```dotenv
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=task_flow
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
+
+5. Generate the application key:
+
    ```bash
    php artisan key:generate
    ```
-6. Run migrations and seed the database:
+
+6. Run migrations and seed the database (the seeder creates demo users, projects,
+   tags, tasks, and some comments/attachments):
+
    ```bash
    php artisan migrate --seed
    ```
-7. Start the development servers:
-   ```bash
-   php artisan serve   # Laravel backend
-   npm run dev         # Vite frontend
-   ```
 
-## Usage
+## Running locally
 
-- Register a new account or log in
-- Create projects from the sidebar
-- Add tasks to projects, set status, priority, due dates, assignees, and tags
-- Filter tasks by status, priority, assignee, project, or tags
-- Update tasks inline or via edit form
-- Delete tasks or projects as needed
+### Recommended (one command)
+
+`composer run dev` starts everything concurrently — the PHP server, the queue
+listener, and the Vite dev server:
+
+```bash
+composer run dev
+```
+
+Then open the printed `APP_URL` (default `http://localhost:8000`).
+
+### Manual alternative
+
+Run the two processes in separate terminals:
+
+```bash
+php artisan serve   # Laravel backend (http://localhost:8000)
+npm run dev         # Vite frontend (HMR on :5173)
+```
+
+### Attachments
+
+Uploaded files are stored on Laravel's `public` disk, so they are only
+downloadable after you create the storage symlink:
+
+```bash
+php artisan storage:link
+```
+
+Without it, attachment download links return 404.
+
+## Verifying code quality (for reviewers)
+
+```bash
+composer lint           # Laravel Pint (code style)
+composer test           # config:clear + Pint check + PHPStan (types:check) + php artisan test
+npm run types:check    # vue-tsc frontend type check
+```
 
 ## Testing
 
-Run the test suite:
+The suite is Pest (PHPUnit). Run it with:
+
 ```bash
 php artisan test
 ```
 
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+> The starter kit's password-reset tests are skipped because Fortify's
+> `resetPasswords()` feature is intentionally disabled (see DECISIONS.md).
 
 ## License
 
-This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced software licensed under the
+[MIT license](https://opensource.org/licenses/MIT).
