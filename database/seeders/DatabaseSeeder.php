@@ -7,6 +7,8 @@ use App\Enums\TaskStatus;
 use App\Models\Project;
 use App\Models\Tag;
 use App\Models\Task;
+use App\Models\TaskAttachment;
+use App\Models\TaskComment;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -53,7 +55,7 @@ class DatabaseSeeder extends Seeder
         $statuses = TaskStatus::cases();
         $priorities = TaskPriority::cases();
 
-        Task::factory(25)
+        $tasks = Task::factory(25)
             ->sequence(fn () => [
                 'status' => fake()->randomElement($statuses),
                 'priority' => fake()->randomElement($priorities),
@@ -62,5 +64,23 @@ class DatabaseSeeder extends Seeder
                 'project_id' => fake()->optional(0.9)->passthrough($projects->random()->id),
             ])
             ->create();
+
+        $tasks->each(function (Task $task) use ($users): void {
+            $commentCount = fake()->numberBetween(0, 4);
+            for ($i = 0; $i < $commentCount; $i++) {
+                TaskComment::factory()->create([
+                    'task_id' => $task->id,
+                    'user_id' => $users->random()->id,
+                ]);
+            }
+
+            $attachmentCount = fake()->numberBetween(0, 2);
+            for ($i = 0; $i < $attachmentCount; $i++) {
+                TaskAttachment::factory()->create([
+                    'task_id' => $task->id,
+                    'uploaded_by' => $users->random()->id,
+                ]);
+            }
+        });
     }
 }
