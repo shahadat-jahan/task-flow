@@ -153,6 +153,7 @@ are graded criteria, not aesthetic preferences.
 
 ## Git & Commits
 
+- Alwayse write, run Test and run Pint
 - Commit after every logically complete unit of work — see
   `/agent-prompts.md` for the exact task breakdown and commit boundaries
   if you're following that file turn-by-turn.

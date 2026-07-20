@@ -5,7 +5,8 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(vendor/bin/pint --dirty --format agent)",
-      "Bash(xargs grep -l \"confirm-password\\\\|password.confirm\")"
+      "Bash(xargs grep -l \"confirm-password\\\\|password.confirm\")",
+      "Bash(npm run *)"
     ]
   }
 }
