@@ -34,6 +34,7 @@ class DashboardController extends Controller
             ->withQueryString();
 
         return Inertia::render('Dashboard', [
+            'pageTitle' => 'Dashboard',
             'tasks' => $tasks,
             'filters' => $filters,
             'projects' => fn () => Project::select(['id', 'name'])->orderBy('name')->get(),

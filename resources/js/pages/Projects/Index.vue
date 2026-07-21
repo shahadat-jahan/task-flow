@@ -19,7 +19,7 @@ defineOptions({
     <div class="p-4">
         <h1 class="text-xl font-semibold">Projects</h1>
         <p class="text-sm text-muted-foreground">
-            Project management UI will be built in a later prompt.
+            Project management UI will be built in a later.
         </p>
     </div>
 </template>

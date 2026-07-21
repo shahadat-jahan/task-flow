@@ -62,7 +62,7 @@ const mobileNavOpen = ref(false);
 
                 <div class="min-w-0">
                     <h1 class="truncate text-lg font-semibold tracking-tight">
-                        {{ title ?? page.props.name }}
+                        {{ title ?? page.props.pageTitle ?? '' }}
                     </h1>
                     <p
                         v-if="subtitle"

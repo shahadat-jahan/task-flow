@@ -28,13 +28,13 @@ defineOptions({
 <template>
     <Head title="Dashboard" />
 
-        <TaskIndexView
-            :tasks="props.tasks"
-            :filters="props.filters"
-            :projects="props.projects"
-            :tags="props.tags"
-            :users="props.users"
-            :summary="props.summary"
-        />
+    <TaskIndexView
+        :tasks="props.tasks"
+        :filters="props.filters"
+        :projects="props.projects"
+        :tags="props.tags"
+        :users="props.users"
+        :summary="props.summary"
+    />
 
 </template>

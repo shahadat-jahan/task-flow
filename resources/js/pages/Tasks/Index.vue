@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import {
     AlertTriangle,
     CircleCheck,
@@ -280,6 +280,8 @@ function openTask(task: Task): void {
 </script>
 
 <template>
+    <Head title="Tasks" />
+
     <div class="space-y-6">
         <!-- Summary cards -->
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

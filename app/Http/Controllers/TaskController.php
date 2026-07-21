@@ -14,6 +14,7 @@ use App\Services\TaskSummaryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -44,21 +45,14 @@ class TaskController extends Controller
             ->withQueryString();
 
         return Inertia::render('Tasks/Index', [
+            'pageTitle' => 'Tasks',
             'tasks' => $tasks,
-            'filters' => [
-                'status' => $request->status,
-                'priority' => $request->priority,
-                'project_id' => $request->project_id,
-                'tag_id' => $request->tag_id,
-                'search' => $request->search,
-                'sort' => $request->sort,
-                'direction' => $request->direction,
-            ],
-            'projects' => Project::orderBy('name')->get()->toArray(),
-            'tags' => Tag::orderBy('name')->get()->toArray(),
-            'users' => User::orderBy('name')->get()->toArray(),
-            'summary' => $this->summary->summarize(),
-        ]);
+            'filters' => $request->only(['status', 'priority', 'project_id', 'tag_id', 'search', 'sort', 'direction']),
+            'projects' => Project::orderBy('name')->get(['id', 'name']),
+            'tags' => Tag::orderBy('name')->get(['id', 'name']),
+            'users' => User::orderBy('name')->get(['id', 'name']),
+        'summary' => $this->summary->summarize(),
+    ]);
     }
 
     /**
@@ -92,6 +86,7 @@ class TaskController extends Controller
         ]);
 
         return Inertia::render('Tasks/Show', [
+            'pageTitle' => $task->title,
             'task' => $task,
         ]);
     }
@@ -104,6 +99,7 @@ class TaskController extends Controller
         $this->authorize('update', $task);
 
         return Inertia::render('Tasks/Edit', [
+            'pageTitle' => 'Edit Task',
             'task' => $task,
         ]);
     }
@@ -140,19 +136,19 @@ class TaskController extends Controller
      * Quick inline status change for a task.
      */
     public function updateStatus(Request $request, Task $task): RedirectResponse
-    {
-        $this->authorize('update', $task);
+{
+    $this->authorize('update', $task);
 
-        $request->validate([
-            'status' => ['required', Rule::in(array_map(fn (TaskStatus $s) => $s->value, TaskStatus::cases()))],
-        ]);
+    $validated = $request->validate([
+        'status' => ['required', new Enum(TaskStatus::class)],
+    ]);
 
-        $this->tasks->updateStatus($task, $request->input('status'));
+    $this->tasks->updateStatus($task, $validated['status']);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Status updated.')]);
+    Inertia::flash('toast', ['type' => 'success', 'message' => __('Status updated.')]);
 
-        return back();
-    }
+    return back();
+}
 
     /**
      * Resolve the sort column, restricting to an allowlist.
