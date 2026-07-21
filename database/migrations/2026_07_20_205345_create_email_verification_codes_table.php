@@ -20,6 +20,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['email', 'type']);
+            $table->unique(['email', 'type']);
         });
     }
 
@@ -28,6 +29,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        $table->dropUnique(['email', 'type']);
         Schema::dropIfExists('email_verification_codes');
     }
 };
