@@ -455,3 +455,59 @@ manifest. They are placeholders — the real Figma UI is built in a later prompt
   covered by existing `TaskTest`/`CommentTest`/`AttachmentTest`, so no
   duplication was added.
 
+## Unverified-user login interception
+
+### Problem
+Previously, an unverified user (`email_verified_at === null`) could log in and
+reach the authenticated dashboard — the `email_verified_at` column existed but
+was never enforced by any gate or middleware because Fortify's
+`emailVerification()` feature was disabled. The OTP flow was intentionally out
+of scope at project start; now we are adding it.
+
+### Solution — pipeline step, not a response-class override
+Rather than overriding Fortify's `LoginResponse` contract (which would replace
+the entire response object), we inject the verification check as the **last step
+in the authentication pipeline** via `Fortify::authenticateThrough()` in
+`FortifyServiceProvider::configureAuthenticationPipeline()`.
+
+The pipeline runs:
+1. `EnsureLoginIsNotThrottled` (rate limiter)
+2. `RedirectIfTwoFactorAuthenticatable` (if two-factor feature enabled — it isn't)
+3. `AttemptToAuthenticate` (Fortify's credentials check)
+4. `PrepareAuthenticatedSession` (regenerates session)
+5. **Custom closure** — checks `auth()->user()->email_verified_at === null`:
+   - Logs the user out
+   - Issues a `'login'`-type OTP via `IssueVerificationCode::handle($email, 'login')`
+   - Redirects to `verification.notice?email=...` with status message
+
+### Why this approach
+- **No separate response class.** The user explicitly asked to avoid using a
+  response class.
+- **Surgeries the minimum pipeline.** Only the final closure is custom; the
+  standard Fortify actions handle credentials and session setup.
+- **Registration and password-reset are untouched.** `RegisteredUserController`
+  still issues `'registration'` codes; `PasswordResetController` still issues
+  `'reset'` codes. Only the login pipeline is modified.
+
+### EmailVerificationController changes
+- `verify()` now accepts **both** `'registration'` and `'login'` code types
+  (`whereIn('type', ['registration', 'login'])`). A user redirected from the
+  new login flow can enter the exact same OTP screen to verify.
+- `resend()` preserves the original code type by querying the latest code
+  record's `type` field, so a user who was redirected from login receives a
+  fresh `'login'`-type code rather than `'registration'`.
+
+### Test coverage
+| Test | What it guards |
+|---|---|
+| `a verified user can log in with valid credentials` | Normal login still works (user created with `email_verified_at: now()`) |
+| `an unverified user is redirected to verify-email and given a login-type OTP on login attempt` | Redirect to `verification.notice`, session status, `'login'`-type code created, `assertGuest()` |
+| All existing `AuthTest`, `AuthenticationTest`, `PasswordResetTest`, `RegistrationTest` | Registration and password-reset flows unchanged; full suite 75 passed |
+
+### Files changed
+- `app/Providers/FortifyServiceProvider.php` — added `configureAuthenticationPipeline()`
+- `app/Http/Controllers/Auth/EmailVerificationController.php` — `verify()` uses `whereIn`,
+  `resend()` preserves code type
+- `tests/Feature/AuthTest.php` — new test for unverified login, existing test renamed
+- `DECISIONS.md` — this entry
+

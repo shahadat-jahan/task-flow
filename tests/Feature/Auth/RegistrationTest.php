@@ -33,7 +33,7 @@ test('new users register unverified, are not logged in, and receive a code', fun
         'type' => 'registration',
     ]);
 
-    Mail::assertSent(SendVerificationCode::class, fn ($mail) => $mail->hasTo('test@example.com') && $mail->purpose === 'registration');
+    Mail::assertQueued(SendVerificationCode::class, fn ($mail) => $mail->hasTo('test@example.com') && $mail->purpose === 'registration');
 });
 
 test('email is verified with the correct code', function () {
@@ -135,5 +135,5 @@ test('a fresh verification code can be resent', function () {
         'email' => $user->email,
         'type' => 'registration',
     ]);
-    Mail::assertSent(SendVerificationCode::class);
+    Mail::assertQueued(SendVerificationCode::class);
 });

@@ -34,7 +34,7 @@ class EmailVerificationController extends Controller
         ]);
 
         $code = EmailVerificationCode::where('email', $request->email)
-            ->where('type', 'registration')
+            ->whereIn('type', ['registration', 'login'])
             ->valid()
             ->where('code', $request->code)
             ->first();
@@ -65,7 +65,14 @@ class EmailVerificationController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if ($user) {
-            app(IssueVerificationCode::class)->handle($user->email, 'registration');
+            $latest = EmailVerificationCode::where('email', $request->email)
+                ->whereIn('type', ['registration', 'login'])
+                ->latest()
+                ->first();
+
+            $type = $latest?->type ?? 'registration';
+
+            app(IssueVerificationCode::class)->handle($user->email, $type);
         }
 
         return redirect()->back()

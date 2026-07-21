@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\EmailVerificationCode;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -8,16 +9,41 @@ test('guests are redirected away from authenticated pages', function () {
     $this->get(route('tasks.index'))->assertRedirect(route('login'));
 });
 
-test('a user can log in with valid credentials', function () {
+test('a verified user can log in with valid credentials', function () {
     $user = User::factory()->create([
         'email' => 'login@example.com',
         'password' => Hash::make('password'),
+        'email_verified_at' => now(),
     ]);
 
     $this->post(route('login.store'), [
         'email' => 'login@example.com',
         'password' => 'password',
     ])->assertRedirect();
+});
+
+test('an unverified user is redirected to verify-email and given a login-type OTP on login attempt', function () {
+    $user = User::factory()->create([
+        'email' => 'unverified@example.com',
+        'password' => Hash::make('password'),
+        'email_verified_at' => null,
+    ]);
+
+    $this->post(route('login.store'), [
+        'email' => 'unverified@example.com',
+        'password' => 'password',
+    ])
+        ->assertRedirect(route('verification.notice', ['email' => 'unverified@example.com']))
+        ->assertSessionHas('status', trans('Please verify your email before signing in. A new code has been sent to your email.'));
+
+    // Assert a login-type code was created
+    expect(EmailVerificationCode::where('email', 'unverified@example.com')
+        ->where('type', 'login')
+        ->exists()
+    )->toBeTrue();
+
+    // Assert the user is not logged in
+    $this->assertGuest();
 });
 
 test('a user cannot log in with invalid credentials', function () {

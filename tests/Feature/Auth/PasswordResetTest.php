@@ -27,7 +27,7 @@ test('a reset code is emailed for an existing account', function () {
         'email' => $user->email,
         'type' => 'reset',
     ]);
-    Mail::assertSent(SendVerificationCode::class, fn ($mail) => $mail->hasTo($user->email) && $mail->purpose === 'reset');
+    Mail::assertQueued(SendVerificationCode::class, fn ($mail) => $mail->hasTo($user->email) && $mail->purpose === 'reset');
 });
 
 test('requesting a reset for an unknown email does not leak its existence', function () {
@@ -147,5 +147,5 @@ test('a fresh reset code can be resent', function () {
         'email' => $user->email,
         'type' => 'reset',
     ]);
-    Mail::assertSent(SendVerificationCode::class);
+    Mail::assertQueued(SendVerificationCode::class);
 });
