@@ -97,4 +97,13 @@ class Task extends Model
     {
         return $this->hasMany(TaskAttachment::class);
     }
+
+    public function scopeFilter($query, array $filters)
+{
+    $query->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+        ->when($filters['priority'] ?? null, fn ($q, $priority) => $q->where('priority', $priority))
+        ->when($filters['project_id'] ?? null, fn ($q, $projectId) => $q->where('project_id', $projectId))
+        ->when($filters['tag_id'] ?? null, fn ($q, $tagId) => $q->whereHas('tags', fn ($q) => $q->where('tags.id', $tagId)))
+        ->when($filters['search'] ?? null, fn ($q, $search) => $q->where('title', 'like', "%{$search}%"));
+}
 }

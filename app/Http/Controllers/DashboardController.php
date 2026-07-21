@@ -24,52 +24,42 @@ class DashboardController extends Controller
 
     public function index(Request $request): Response
     {
+        $filters = $request->only(['status', 'priority', 'project_id', 'tag_id', 'search', 'sort', 'direction']);
+
         $tasks = Task::query()
-            ->with(['assignee', 'creator', 'project', 'tags'])
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
-            ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->priority))
-            ->when($request->filled('project_id'), fn ($q) => $q->where('project_id', $request->project_id))
-            ->when($request->filled('tag_id'), fn ($q) => $q->whereHas('tags', fn ($q) => $q->where('id', $request->tag_id)))
-            ->when($request->filled('search'), fn ($q) => $q->where('title', 'like', '%'.$request->search.'%'))
-            ->orderBy($this->sortColumn($request), $this->direction($request))
+            ->with(['assignee:id,name', 'creator:id,name', 'project:id,name', 'tags:id,name,color'])
+            ->filter($filters)
+            ->orderBy($this->sortColumn($request->input('sort')), $this->direction($request->input('direction')))
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('Tasks/Index', [
             'tasks' => $tasks,
-            'filters' => [
-                'status' => $request->status,
-                'priority' => $request->priority,
-                'project_id' => $request->project_id,
-                'tag_id' => $request->tag_id,
-                'search' => $request->search,
-                'sort' => $request->sort,
-                'direction' => $request->direction,
-            ],
-            'projects' => Project::orderBy('name')->get()->toArray(),
-            'tags' => Tag::orderBy('name')->get()->toArray(),
-            'users' => User::orderBy('name')->get()->toArray(),
-            'summary' => $this->summary->summarize(),
+            'filters' => $filters,
+            'projects' => fn () => Project::select(['id', 'name'])->orderBy('name')->get(),
+            'tags' => fn () => Tag::select(['id', 'name', 'color'])->orderBy('name')->get(),
+            'users' => fn () => User::select(['id', 'name'])->orderBy('name')->get(),
+            'summary' => fn () => $this->summary->summarize(),
         ]);
     }
 
-    /**
+   /**
      * Resolve the sort column, restricting to an allowlist.
      */
-    protected function sortColumn(Request $request): string
+    protected function sortColumn(?string $sort): string
     {
-        return in_array($request->sort, ['due_date', 'priority', 'created_at', 'title'], true)
-            ? $request->sort
+        return in_array($sort, ['due_date', 'priority', 'created_at', 'title'], true)
+            ? $sort
             : 'created_at';
     }
 
     /**
      * Resolve the sort direction, defaulting to ascending.
      */
-    protected function direction(Request $request): string
+    protected function direction(?string $direction): string
     {
-        return in_array($request->direction, ['asc', 'desc'], true)
-            ? $request->direction
+        return in_array(strtolower((string) $direction), ['asc', 'desc'], true)
+            ? strtolower($direction)
             : 'asc';
     }
 }
