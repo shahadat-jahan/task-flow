@@ -511,3 +511,59 @@ The pipeline runs:
 - `tests/Feature/AuthTest.php` — new test for unverified login, existing test renamed
 - `DECISIONS.md` — this entry
 
+## Service Layer Refactor
+
+### Why
+The HTTP controllers were holding business logic inline — Eloquent writes, tag syncing,
+file storage, and ownership-adjacent deletes. `TaskSummaryService` already demonstrated the
+intended pattern (reusable, thin, no auth), so the other write-path controllers were
+retrofit to match: business logic moved into dedicated service classes under `app/Services/`,
+and controllers were left thin (Form Request validates → Policy / `abort_unless` authorizes →
+service performs the work → controller returns the Inertia response/redirect).
+
+Goals:
+- **Consistency** — one place owns task/project/comment/attachment/tag persistence, mirroring
+  the existing `TaskSummaryService`.
+- **Thinner controllers** — controllers no longer import models to perform writes; they
+  orchestrate request handling only.
+- **Testable in isolation** — the persistence logic runs in plain PHP classes that don't need
+  a full HTTP context, so it can later be unit-tested directly if desired.
+
+### Modules touched
+- `TaskService` (`create` / `update` / `delete` / `updateStatus`) — tag syncing lives inside
+  `create()`/`update()`; the controller no longer touches `Task::create()` or `->tags()->sync()`.
+- `TaskCommentService` (`create` / `delete`).
+- `TaskAttachmentService` (`upload` / `delete`) — owns the `storeAs()` call, the DB record, and
+  the disk-file deletion.
+- `ProjectService` (`create` / `update` / `delete`).
+- `TagService` (`create`).
+
+`TaskSummaryService` was **already** following the pattern and was left as-is. Read-only
+controller methods (`index` / `show` / `edit`) stay in the controllers — only write-path logic
+was extracted.
+
+### Authorization stays in the controller / Form Request layer
+Services assume the caller is **already authorized** and receives **already-validated** data —
+they perform no authorization of their own. This was preserved exactly:
+- `TaskController` keeps its `$this->authorize(...)` Policy calls (and `updateStatus`'s inline
+  `$request->validate(...)`).
+- `TaskCommentController` / `TaskAttachmentController` keep their `abort_unless(... ===
+  $request->user()->id, 403)` ownership guards.
+- `ProjectController` / `TagController` keep their open-to-any-authenticated-user posture
+  (per the design), with validation remaining in the Form Requests.
+
+### Behavior preserved
+Two pre-existing quirks were copied verbatim rather than "cleaned up" (out of scope):
+- `TaskService::update()` calls `tags()->sync([])` even when no `tags` key is present, matching
+  the original controller's `unset($data['tags'])` + `sync($tags)` pattern.
+- `TagController::store()` still branches on `$request->inertia()` to return JSON `201
+  { tag }` for the inline tag creator vs an Inertia redirect for the Tags page.
+
+### Commits (one per module)
+- `refactor(tasks): extract TaskService, thin out TaskController`
+- `refactor(comments): extract TaskCommentService`
+- `refactor(attachments): extract TaskAttachmentService`
+- `refactor(projects): extract ProjectService`
+- `refactor(tags): extract TagService`
+- `docs: document service layer refactor in DECISIONS.md`
+
