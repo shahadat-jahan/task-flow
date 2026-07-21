@@ -5,13 +5,17 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreAttachmentRequest;
 use App\Models\Task;
 use App\Models\TaskAttachment;
+use App\Services\TaskAttachmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class TaskAttachmentController extends Controller
 {
+    public function __construct(
+        private readonly TaskAttachmentService $attachments,
+    ) {}
+
     /**
      * Store an uploaded file. Any authenticated user may attach files.
      */
@@ -19,16 +23,7 @@ class TaskAttachmentController extends Controller
     {
         $file = $request->file('file');
 
-        $path = $file->storeAs('attachments/'.$task->id, $file->hashName(), 'public');
-
-        TaskAttachment::create([
-            'task_id' => $task->id,
-            'uploaded_by' => $request->user()->id,
-            'original_filename' => $file->getClientOriginalName(),
-            'stored_path' => $path,
-            'mime_type' => $file->getMimeType(),
-            'size_bytes' => $file->getSize(),
-        ]);
+        $this->attachments->upload($task, $request->user(), $file);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Attachment added.')]);
 
@@ -42,8 +37,7 @@ class TaskAttachmentController extends Controller
     {
         abort_unless($attachment->uploaded_by === $request->user()->id, 403);
 
-        Storage::disk('public')->delete($attachment->stored_path);
-        $attachment->delete();
+        $this->attachments->delete($attachment);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Attachment deleted.')]);
 
