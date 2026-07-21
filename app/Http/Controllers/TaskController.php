@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\Tag;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\TaskService;
 use App\Services\TaskSummaryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class TaskController extends Controller
      * Shared summary queries (status counts for the summary cards).
      */
     public function __construct(
+        private readonly TaskService $tasks,
         private readonly TaskSummaryService $summary,
     ) {}
 
@@ -66,16 +68,7 @@ class TaskController extends Controller
     {
         $this->authorize('create', Task::class);
 
-        $data = $request->validated();
-        $tags = $data['tags'] ?? [];
-        unset($data['tags']);
-
-        $task = Task::create([
-            ...$data,
-            'created_by' => $request->user()->id,
-        ]);
-
-        $task->tags()->sync($tags);
+        $this->tasks->create($request->validated(), $request->user());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Task created.')]);
 
@@ -122,12 +115,7 @@ class TaskController extends Controller
     {
         $this->authorize('update', $task);
 
-        $data = $request->validated();
-        $tags = $data['tags'] ?? [];
-        unset($data['tags']);
-
-        $task->update($data);
-        $task->tags()->sync($tags);
+        $this->tasks->update($task, $request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Task updated.')]);
 
@@ -141,7 +129,7 @@ class TaskController extends Controller
     {
         $this->authorize('delete', $task);
 
-        $task->delete();
+        $this->tasks->delete($task);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Task deleted.')]);
 
@@ -159,7 +147,7 @@ class TaskController extends Controller
             'status' => ['required', Rule::in(array_map(fn (TaskStatus $s) => $s->value, TaskStatus::cases()))],
         ]);
 
-        $task->update(['status' => $request->status]);
+        $this->tasks->updateStatus($task, $request->input('status'));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Status updated.')]);
 
