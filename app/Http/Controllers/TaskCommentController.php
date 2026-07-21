@@ -5,22 +5,23 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCommentRequest;
 use App\Models\Task;
 use App\Models\TaskComment;
+use App\Services\TaskCommentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class TaskCommentController extends Controller
 {
+    public function __construct(
+        private readonly TaskCommentService $comments,
+    ) {}
+
     /**
      * Store a new comment. Any authenticated user may comment on any task.
      */
     public function store(StoreCommentRequest $request, Task $task): RedirectResponse
     {
-        TaskComment::create([
-            'task_id' => $task->id,
-            'user_id' => $request->user()->id,
-            ...$request->validated(),
-        ]);
+        $this->comments->create($task, $request->user(), $request->validated()['body']);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Comment added.')]);
 
@@ -34,7 +35,7 @@ class TaskCommentController extends Controller
     {
         abort_unless($comment->user_id === $request->user()->id, 403);
 
-        $comment->delete();
+        $this->comments->delete($comment);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Comment deleted.')]);
 
