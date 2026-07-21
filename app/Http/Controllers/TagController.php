@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTagRequest;
 use App\Models\Tag;
+use App\Services\TagService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,10 @@ use Inertia\Response;
 
 class TagController extends Controller
 {
+    public function __construct(
+        private readonly TagService $tags,
+    ) {}
+
     /**
      * Display a listing of all tags.
      */
@@ -33,7 +38,7 @@ class TagController extends Controller
      */
     public function store(StoreTagRequest $request): RedirectResponse|JsonResponse
     {
-        $tag = Tag::create($request->validated());
+        $tag = $this->tags->create($request->validated());
 
         if (! $request->inertia()) {
             return response()->json(['tag' => $tag->toArray()], 201);
