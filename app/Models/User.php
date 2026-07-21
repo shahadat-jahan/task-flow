@@ -68,4 +68,18 @@ class User extends Authenticatable
     {
         return $this->hasMany(Project::class, 'owner_id');
     }
+
+    /**
+     * Limit serialized fields for Inertia payloads.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $this->email,
+        ];
+    }
 }

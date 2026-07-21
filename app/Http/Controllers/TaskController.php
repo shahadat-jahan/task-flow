@@ -5,10 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\TaskStatus;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
-use App\Http\Resources\ProjectResource;
-use App\Http\Resources\TagResource;
-use App\Http\Resources\TaskResource;
-use App\Http\Resources\UserResource;
 use App\Models\Project;
 use App\Models\Tag;
 use App\Models\Task;
@@ -46,7 +42,7 @@ class TaskController extends Controller
             ->withQueryString();
 
         return Inertia::render('Tasks/Index', [
-            'tasks' => TaskResource::collection($tasks),
+            'tasks' => $tasks,
             'filters' => [
                 'status' => $request->status,
                 'priority' => $request->priority,
@@ -56,9 +52,9 @@ class TaskController extends Controller
                 'sort' => $request->sort,
                 'direction' => $request->direction,
             ],
-            'projects' => ProjectResource::collection(Project::orderBy('name')->get())->resolve($request),
-            'tags' => TagResource::collection(Tag::orderBy('name')->get())->resolve($request),
-            'users' => UserResource::collection(User::orderBy('name')->get())->resolve($request),
+            'projects' => Project::orderBy('name')->get()->toArray(),
+            'tags' => Tag::orderBy('name')->get()->toArray(),
+            'users' => User::orderBy('name')->get()->toArray(),
             'summary' => $this->summary->summarize(),
         ]);
     }
@@ -103,7 +99,7 @@ class TaskController extends Controller
         ]);
 
         return Inertia::render('Tasks/Show', [
-            'task' => (new TaskResource($task))->resolve($request),
+            'task' => $task,
         ]);
     }
 
@@ -115,7 +111,7 @@ class TaskController extends Controller
         $this->authorize('update', $task);
 
         return Inertia::render('Tasks/Edit', [
-            'task' => (new TaskResource($task))->resolve($request),
+            'task' => $task,
         ]);
     }
 

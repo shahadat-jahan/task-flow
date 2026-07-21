@@ -2,10 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\ProjectResource;
-use App\Http\Resources\TagResource;
-use App\Http\Resources\TaskResource;
-use App\Http\Resources\UserResource;
 use App\Models\Project;
 use App\Models\Tag;
 use App\Models\Task;
@@ -40,7 +36,7 @@ class DashboardController extends Controller
             ->withQueryString();
 
         return Inertia::render('Tasks/Index', [
-            'tasks' => TaskResource::collection($tasks),
+            'tasks' => $tasks,
             'filters' => [
                 'status' => $request->status,
                 'priority' => $request->priority,
@@ -50,9 +46,9 @@ class DashboardController extends Controller
                 'sort' => $request->sort,
                 'direction' => $request->direction,
             ],
-            'projects' => ProjectResource::collection(Project::orderBy('name')->get())->resolve($request),
-            'tags' => TagResource::collection(Tag::orderBy('name')->get())->resolve($request),
-            'users' => UserResource::collection(User::orderBy('name')->get())->resolve($request),
+            'projects' => Project::orderBy('name')->get()->toArray(),
+            'tags' => Tag::orderBy('name')->get()->toArray(),
+            'users' => User::orderBy('name')->get()->toArray(),
             'summary' => $this->summary->summarize(),
         ]);
     }

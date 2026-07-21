@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTagRequest;
-use App\Http\Resources\TagResource;
 use App\Models\Tag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -37,7 +36,7 @@ class TagController extends Controller
         $tag = Tag::create($request->validated());
 
         if (! $request->inertia()) {
-            return response()->json(['tag' => new TagResource($tag)], 201);
+            return response()->json(['tag' => $tag->toArray()], 201);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Tag created.')]);
