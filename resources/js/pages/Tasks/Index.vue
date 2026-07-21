@@ -88,6 +88,7 @@ interface PaginatedTasks {
 }
 
 const props = defineProps<{
+    title?: string;
     tasks: PaginatedTasks;
     filters: {
         status: Status | '' | null;
@@ -211,7 +212,7 @@ function applyFilters(): void {
         params.search = search.value.trim();
     }
 
-    router.get(index.url(), params, {
+    router.get(window.location.pathname, params, {
         preserveState: true,
         preserveScroll: true,
         replace: true,
@@ -280,7 +281,7 @@ function openTask(task: Task): void {
 </script>
 
 <template>
-    <Head title="Tasks" />
+    <Head v-if="props.title" :title="props.title" />
 
     <div class="space-y-6">
         <!-- Summary cards -->
