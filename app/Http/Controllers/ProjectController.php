@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;
 use App\Models\Project;
+use App\Services\ProjectService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,6 +13,10 @@ use Inertia\Response;
 
 class ProjectController extends Controller
 {
+    public function __construct(
+        private readonly ProjectService $projects,
+    ) {}
+
     /**
      * Display a listing of projects. All projects are visible to any
      * authenticated user (no per-user scoping, per the design).
@@ -32,10 +37,7 @@ class ProjectController extends Controller
      */
     public function store(StoreProjectRequest $request): RedirectResponse
     {
-        Project::create([
-            ...$request->validated(),
-            'owner_id' => $request->user()->id,
-        ]);
+        $this->projects->create($request->validated(), $request->user());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project created.')]);
 
@@ -47,7 +49,7 @@ class ProjectController extends Controller
      */
     public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
     {
-        $project->update($request->validated());
+        $this->projects->update($project, $request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project updated.')]);
 
@@ -59,7 +61,7 @@ class ProjectController extends Controller
      */
     public function destroy(Project $project): RedirectResponse
     {
-        $project->delete();
+        $this->projects->delete($project);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project deleted.')]);
 
