@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm, router } from '@inertiajs/vue3';
-import { Plus, X } from '@lucide/vue';
+import { X } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import type { TaskFormTask } from '@/composables/useTaskModal';
-import { store as tagsStore } from '@/routes/tags';
 import { destroy, store, update } from '@/routes/tasks';
 
 const props = defineProps<{
@@ -51,35 +50,28 @@ const priorityOptions: { value: string; label: string }[] = [
     { value: 'high', label: 'High' },
 ];
 
-// Native textarea / date inputs reuse the shadcn Input styling.
-const controlClass =
-    'border-input bg-transparent file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex w-full min-w-0 rounded-md border px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
-
 const form = useForm({
     title: '',
     description: '',
     status: 'todo',
     priority: 'medium',
     due_date: '',
-    assignee_id: '',
-    project_id: '',
+    assignee_id: 'none',
+    project_id: 'none',
     tags: [] as string[],
 });
 
 const confirmingDelete = ref(false);
+const tagsInput = ref('');
 const availableTags = ref<{ id: number; name: string; color: string }[]>(
     props.tags,
 );
-const newTag = ref('');
-const addingTag = ref(false);
-const tagError = ref('');
 
 function resetForm(): void {
     form.reset();
     form.clearErrors();
     confirmingDelete.value = false;
-    tagError.value = '';
-    newTag.value = '';
+    tagsInput.value = '';
 }
 
 watch(
@@ -94,8 +86,9 @@ watch(
         if (props.task) {
             form.title = props.task.title;
             form.description = props.task.description ?? '';
-            form.status = props.task.status;
-            form.priority = props.task.priority;
+            form.status = props.task.status || 'todo';
+            form.priority = props.task.priority || 'medium';
+
             form.due_date = props.task.due_date
                 ? props.task.due_date.slice(0, 10)
                 : '';
@@ -105,62 +98,14 @@ watch(
             form.project_id = props.task.project_id
                 ? String(props.task.project_id)
                 : 'none';
-            form.tags = props.task.tags.map((tag) => String(tag.id));
+            form.tags = props.task.tags.map((tag) => tag.name);
+            tagsInput.value = props.task.tags.map((tag) => tag.name).join(', ');
         } else {
             resetForm();
         }
     },
     { immediate: true },
 );
-
-async function addTag(): Promise<void> {
-    const name = newTag.value.trim();
-
-    if (!name) {
-        return;
-    }
-
-    addingTag.value = true;
-    tagError.value = '';
-
-    try {
-        const token = decodeURIComponent(
-            document.cookie
-                .split('; ')
-                .find((cookie) => cookie.startsWith('XSRF-TOKEN='))
-                ?.split('=')[1] ?? '',
-        );
-
-        const response = await fetch(tagsStore.url(), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-XSRF-TOKEN': token,
-            },
-            body: JSON.stringify({ name, color: '#6b7280' }),
-        });
-
-        if (!response.ok) {
-            const data = (await response.json().catch(() => null)) as {
-                message?: string;
-            } | null;
-            tagError.value = data?.message ?? 'Could not create tag.';
-            addingTag.value = false;
-
-            return;
-        }
-
-        const data = (await response.json()) as {
-            tag: { id: number; name: string; color: string };
-        };
-        availableTags.value.push(data.tag);
-        form.tags.push(String(data.tag.id));
-        newTag.value = '';
-    } finally {
-        addingTag.value = false;
-    }
-}
 
 function submit(): void {
     // 'none' is the Select sentinel for "unassigned"; the backend expects null/empty.
@@ -171,6 +116,21 @@ function submit(): void {
     if (form.project_id === 'none') {
         form.project_id = '';
     }
+
+    // Convert comma-separated tag names to array of tag IDs
+    const tagNames = tagsInput.value
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0);
+
+    form.tags = tagNames
+        .map((name) => {
+            const found = availableTags.value.find(
+                (t) => t.name.toLowerCase() === name.toLowerCase(),
+            );
+            return found ? String(found.id) : null;
+        })
+        .filter((id): id is string => id !== null);
 
     if (props.task) {
         form.put(update.url(props.task.id), {
@@ -201,21 +161,21 @@ function deleteTask(): void {
         :open="open"
         @update:open="(value: boolean) => !value && emit('close')"
     >
-        <DialogContent class="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent :show-close-button="false" class="max-h-[90dvh] overflow-y-auto sm:max-w-2xl rounded-[16px] shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]">
             <button
                 type="button"
-                class="absolute end-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
+                class="absolute end-4 top-4 flex size-[32px] items-center justify-center rounded-[12px] bg-[#F1F5F9] opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
                 @click="emit('close')"
             >
-                <X class="size-4" />
+                <X class="size-4 text-[#45556C]" />
                 <span class="sr-only">Close</span>
             </button>
 
-            <DialogHeader class="space-y-1">
-                <DialogTitle>
+            <DialogHeader class="flex h-[75px] flex-col justify-center border-b border-[#F1F5F9]">
+                <DialogTitle class="text-base font-semibold text-[#0F172B]">
                     {{ task ? 'Edit Task' : 'Create New Task' }}
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription class="text-xs font-normal text-[#62748E]">
                     {{
                         task
                             ? 'Update the details of this task.'
@@ -224,33 +184,35 @@ function deleteTask(): void {
                 </DialogDescription>
             </DialogHeader>
 
-            <div class="grid gap-4 py-2">
+            <form @submit.prevent="submit">
+            <div class="grid gap-5 pb-5">
                 <!-- Title -->
                 <div class="grid gap-2">
-                    <Label for="title">Task Title</Label>
-                    <Input id="title" v-model="form.title" />
+                    <Label for="title" class="text-sm font-medium text-[#314158]">Task Title</Label>
+                    <Input id="title" v-model="form.title" class="h-[42px] w-full rounded-[16px] border border-[#E2E8F0] px-[14px] text-sm text-[#90A1B9] placeholder:text-[#90A1B9]" placeholder="e.g. Redesign the onboarding flow" />
                     <InputError :message="form.errors.title" />
                 </div>
 
                 <!-- Description -->
                 <div class="grid gap-2">
-                    <Label for="description">Description</Label>
+                    <Label for="description" class="text-sm font-medium text-[#314158]">Description</Label>
                     <textarea
                         id="description"
                         v-model="form.description"
                         rows="3"
-                        :class="controlClass"
+                        class="h-[82px] w-full rounded-[16px] border border-[#E2E8F0] bg-white px-[14px] py-[10px] text-sm text-[#90A1B9] placeholder:text-[#90A1B9] focus:border-[#E2E8F0] focus:outline-none resize-none"
+                        placeholder="Add a detailed description of this task..."
                     />
                     <InputError :message="form.errors.description" />
                 </div>
 
                 <!-- Status + Priority -->
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-2 gap-4">
                     <div class="grid gap-2">
-                        <Label for="status">Status</Label>
+                        <Label for="status" class="text-sm font-medium text-[#314158]">Status</Label>
                         <Select v-model="form.status">
-                            <SelectTrigger id="status">
-                                <SelectValue placeholder="Select status" />
+                            <SelectTrigger id="status" class="h-[42px] w-full rounded-[16px] border border-[#E2E8F0] bg-white px-[14px]">
+                                <SelectValue placeholder="Todo" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
@@ -266,10 +228,10 @@ function deleteTask(): void {
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="priority">Priority</Label>
+                        <Label for="priority" class="text-sm font-medium text-[#314158]">Priority</Label>
                         <Select v-model="form.priority">
-                            <SelectTrigger id="priority">
-                                <SelectValue placeholder="Select priority" />
+                            <SelectTrigger id="priority" class="h-[42px] w-full rounded-[16px] border border-[#E2E8F0] bg-white px-[14px]">
+                                <SelectValue placeholder="Medium" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
@@ -286,11 +248,11 @@ function deleteTask(): void {
                 </div>
 
                 <!-- Assignee + Due Date -->
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-2 gap-4">
                     <div class="grid gap-2">
-                        <Label for="assignee_id">Assignee</Label>
+                        <Label for="assignee_id" class="text-sm font-medium text-[#314158]">Assignee</Label>
                         <Select v-model="form.assignee_id">
-                            <SelectTrigger id="assignee_id">
+                            <SelectTrigger id="assignee_id" class="h-[42px] w-full rounded-[16px] border border-[#E2E8F0] bg-white px-[14px]">
                                 <SelectValue placeholder="Unassigned" />
                             </SelectTrigger>
                             <SelectContent>
@@ -308,23 +270,23 @@ function deleteTask(): void {
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="due_date">Due Date</Label>
+                        <Label for="due_date" class="text-sm font-medium text-[#314158]">Due Date</Label>
                         <input
                             id="due_date"
                             v-model="form.due_date"
                             type="date"
-                            :class="controlClass"
+                            class="h-[42px] w-full rounded-[16px] border border-[#E2E8F0] bg-white px-[14px] text-sm text-[#90A1B9]"
                         />
                         <InputError :message="form.errors.due_date" />
                     </div>
                 </div>
 
                 <!-- Project + Tags -->
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-2 gap-4">
                     <div class="grid gap-2">
-                        <Label for="project_id">Project</Label>
+                        <Label for="project_id" class="text-sm font-medium text-[#314158]">Project</Label>
                         <Select v-model="form.project_id">
-                            <SelectTrigger id="project_id">
+                            <SelectTrigger id="project_id" class="h-[42px] w-full rounded-[16px] border border-[#E2E8F0] bg-white px-[14px]">
                                 <SelectValue placeholder="No project" />
                             </SelectTrigger>
                             <SelectContent>
@@ -342,42 +304,13 @@ function deleteTask(): void {
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="tags">Tags</Label>
-                        <Select id="tags" multiple v-model="form.tags">
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select tags" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="tag in availableTags"
-                                    :key="tag.id"
-                                    :value="String(tag.id)"
-                                >
-                                    {{ tag.name }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <div class="flex items-center gap-2">
-                            <Input
-                                v-model="newTag"
-                                placeholder="New tag name"
-                                class="flex-1"
-                                @keydown.enter.prevent="addTag"
-                            />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                :disabled="addingTag"
-                                @click="addTag"
-                            >
-                                <Plus class="size-4" />
-                                Add
-                            </Button>
-                        </div>
-                        <p v-if="tagError" class="text-sm text-red-600">
-                            {{ tagError }}
-                        </p>
+                        <Label for="tags" class="text-sm font-medium text-[#314158]">Tags</Label>
+                        <Input
+                            id="tags"
+                            v-model="tagsInput"
+                            placeholder="Design, Frontend, Bug..."
+                            class="h-[42px] rounded-[16px] border border-[#E2E8F0] px-[14px] text-sm text-[#90A1B9] placeholder:text-[#90A1B9]"
+                        />
                         <InputError :message="form.errors.tags" />
                     </div>
                 </div>
@@ -394,7 +327,7 @@ function deleteTask(): void {
                             <Button
                                 type="button"
                                 variant="ghost"
-                                class="text-red-600 hover:text-red-600"
+                                class="text-sm font-medium text-red-600 hover:text-red-600"
                                 @click="confirmingDelete = true"
                             >
                                 Delete
@@ -407,6 +340,7 @@ function deleteTask(): void {
                             <Button
                                 type="button"
                                 variant="ghost"
+                                class="text-sm font-medium text-[#45556C] hover:bg-gray-50"
                                 @click="confirmingDelete = false"
                             >
                                 Cancel
@@ -414,6 +348,7 @@ function deleteTask(): void {
                             <Button
                                 type="button"
                                 variant="destructive"
+                                class="h-[36px] rounded-[16px] bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
                                 @click="deleteTask"
                             >
                                 Delete
@@ -421,11 +356,12 @@ function deleteTask(): void {
                         </template>
                     </template>
 
-                    <Button :disabled="form.processing" @click="submit">
+                    <Button type="submit" :disabled="form.processing" class="h-[36px] rounded-[16px] bg-[#4F39F6] px-5 py-2 text-sm font-medium text-white shadow-[0px_1px_3px_#C6D2FF,0px_1px_2px_-1px_#C6D2FF] hover:bg-[#4338CA]">
                         {{ task ? 'Save Changes' : 'Create Task' }}
                     </Button>
                 </div>
             </DialogFooter>
+            </form>
         </DialogContent>
     </Dialog>
 </template>
