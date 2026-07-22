@@ -134,19 +134,19 @@ class TaskController extends Controller
      * Quick inline status change for a task.
      */
     public function updateStatus(Request $request, Task $task): RedirectResponse
-{
-    $this->authorize('update', $task);
+    {
+        $this->authorize('update', $task);
 
-    $validated = $request->validate([
-        'status' => ['required', new Enum(TaskStatus::class)],
-    ]);
+        $validated = $request->validate([
+            'status' => ['required', new Enum(TaskStatus::class)],
+        ]);
 
-    $this->tasks->updateStatus($task, $validated['status']);
+        $this->tasks->updateStatus($task, $validated['status']);
 
-    Inertia::flash('toast', ['type' => 'success', 'message' => __('Status updated.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Status updated.')]);
 
-    return back();
-}
+        return back();
+    }
 
     /**
      * Resolve the sort column, restricting to an allowlist.

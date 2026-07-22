@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
-    AlertTriangle,
+    Activity,
+    AlertCircle,
     CircleCheck,
-    Clock,
-    ListTodo,
     Pencil,
     Plus,
+    SquareCheck,
     Trash2,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -28,11 +28,6 @@ import { useInitials } from '@/composables/useInitials';
 import { useTaskModal } from '@/composables/useTaskModal';
 import { priorityBadgeClass, statusBadgeClass } from '@/lib/taskBadges';
 import { destroy, show } from '@/routes/my-tasks';
-import { destroy as destroyAttachment } from '@/routes/attachments';
-import { destroy as destroyComment } from '@/routes/comments';
-import { store as storeAttachment } from '@/routes/my-tasks/attachments';
-import { store as storeComment } from '@/routes/my-tasks/comments';
-import { update as updateStatus } from '@/routes/my-tasks/status';
 
 type Status = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
 type Priority = 'low' | 'medium' | 'high';
@@ -41,6 +36,9 @@ type TrendDirection = 'up' | 'down' | 'neutral';
 interface TaskTrend {
     value: string;
     direction: TrendDirection;
+    change: number;
+    previous: number;
+    current: number;
 }
 
 interface UserSummary {
@@ -153,7 +151,7 @@ const summaryCards = computed(() =>
               {
                   label: 'Total Tasks',
                   value: props.summary?.total_tasks ?? 0,
-                  icon: ListTodo,
+                  icon: SquareCheck,
                   iconClass: 'bg-indigo-50 text-indigo-600',
                   trend: props.summary?.trends.total_tasks,
               },
@@ -167,14 +165,14 @@ const summaryCards = computed(() =>
               {
                   label: 'In Progress',
                   value: props.summary?.by_status.in_progress ?? 0,
-                  icon: Clock,
+                  icon: Activity,
                   iconClass: 'bg-amber-50 text-amber-600',
                   trend: props.summary?.trends.in_progress,
               },
               {
                   label: 'Overdue',
                   value: props.summary?.overdue_count ?? 0,
-                  icon: AlertTriangle,
+                  icon: AlertCircle,
                   iconClass: 'bg-red-50 text-red-600',
                   trend: props.summary?.trends.overdue_count,
               },

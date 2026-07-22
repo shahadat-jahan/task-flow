@@ -30,7 +30,7 @@ const emit = defineEmits<{
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const projects = computed(() => page.props.sidebarProjects ?? []);
-const myTasksCount = computed(() => page.props.sidebarMyTasksCount ?? 0);
+const myTasksCount = computed<number>(() => (page.props.sidebarMyTasksCount as number) ?? 0);
 
 const { isCurrentUrl } = useCurrentUrl();
 const { getInitials } = useInitials();

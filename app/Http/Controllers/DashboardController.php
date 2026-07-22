@@ -38,11 +38,12 @@ class DashboardController extends Controller
             if ($value && $value !== 'New') {
                 $matches = [];
                 if (preg_match('/^([+-]?\d+)%$/', $value, $matches)) {
-                    $numericValue = (int)$matches[1];
-                    $trend['value'] = sprintf('%+d%%', $numericValue);
+                    $numericValue = (int) $matches[1];
+                    $trend['value'] = sprintf('%d%%', $numericValue);
                     $trend['direction'] = $numericValue > 0 ? 'up' : ($numericValue < 0 ? 'down' : 'neutral');
                 }
             }
+
             return $trend;
         }, $summary['trends']);
 

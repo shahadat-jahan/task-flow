@@ -128,6 +128,7 @@ function submit(): void {
             const found = availableTags.value.find(
                 (t) => t.name.toLowerCase() === name.toLowerCase(),
             );
+
             return found ? String(found.id) : null;
         })
         .filter((id): id is string => id !== null);

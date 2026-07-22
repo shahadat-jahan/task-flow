@@ -53,16 +53,16 @@ test('dashboard summary is zero-filled and includes overdue', function () {
             ->where('summary.by_priority.'.TaskPriority::Low->value, 1));
 });
 
-test('summary trends compare current totals against last week', function () {
+test('summary trends compare current totals against last month', function () {
     $user = User::factory()->create();
 
-    // Created over a week ago → part of the "previous" baseline.
+    // Created over a month ago → part of the "previous" baseline.
     Task::factory()->create([
-        'created_at' => now()->subWeeks(2),
+        'created_at' => now()->subMonths(2),
         'status' => TaskStatus::Todo,
     ]);
 
-    // Created within the last week → only the current total grows.
+    // Created within the last month → only the current total grows.
     Task::factory()->count(2)->create([
         'created_at' => now()->subDays(3),
         'status' => TaskStatus::Todo,
@@ -76,9 +76,11 @@ test('summary trends compare current totals against last week', function () {
             ->has('summary.trends.completed')
             ->has('summary.trends.in_progress')
             ->has('summary.trends.overdue_count')
-            ->where('summary.trends.total_tasks.value', '+201%')
+            ->where('summary.trends.total_tasks.value', '200%')
             ->where('summary.trends.total_tasks.direction', 'up')
-            ->where('summary.trends.completed.direction', 'up'));
+            ->where('summary.trends.total_tasks.change', 200)
+            ->where('summary.trends.completed.direction', 'neutral')
+            ->where('summary.trends.completed.change', 0));
 });
 
 test('shared projects prop includes task counts', function () {

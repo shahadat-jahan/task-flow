@@ -22,7 +22,7 @@ class TaskSummaryService
      *     by_status: array<string, int>,
      *     by_priority: array<string, int>,
      *     overdue_count: int,
-     *     trends: array<string, array{value: string, direction: 'up'|'down'|'neutral'}>
+     *     trends: array<string, array{value: string, direction: 'up'|'down'|'neutral', change: int, previous: int, current: int}>
      * }
      */
     public function summarize(): array
@@ -66,31 +66,31 @@ class TaskSummaryService
      * "week ago" figures assume the record's *current* status also applied a
      * week ago — a documented approximation (see DECISIONS.md).
      *
-     * @return array<string, array{value: string, direction: 'up'|'down'|'neutral'}>
+     * @return array<string, array{value: string, direction: 'up'|'down'|'neutral', change: int, previous: int, current: int}>
      */
     protected function trends(int $totalTasks, int $completed, int $inProgress, int $overdue): array
     {
-        $weekAgo = now()->subWeek();
+        $monthAgo = now()->subMonth();
         $excluded = [TaskStatus::Done->value, TaskStatus::Cancelled->value];
 
         $previousTotal = Task::query()
-            ->where('created_at', '<', $weekAgo)
+            ->where('created_at', '<', $monthAgo)
             ->count();
 
         $previousCompleted = Task::query()
             ->where('status', TaskStatus::Done->value)
-            ->where('created_at', '<', $weekAgo)
+            ->where('created_at', '<', $monthAgo)
             ->count();
 
         $previousInProgress = Task::query()
             ->where('status', TaskStatus::InProgress->value)
-            ->where('created_at', '<', $weekAgo)
+            ->where('created_at', '<', $monthAgo)
             ->count();
 
         $previousOverdue = Task::query()
-            ->whereDate('due_date', '<', $weekAgo->toDateString())
+            ->whereDate('due_date', '<', $monthAgo->toDateString())
             ->whereNotIn('status', $excluded)
-            ->where('created_at', '<', $weekAgo)
+            ->where('created_at', '<', $monthAgo)
             ->count();
 
         return [
@@ -104,25 +104,43 @@ class TaskSummaryService
     /**
      * Compute a single percentage delta between a current and previous count.
      *
-     * @return array{value: string, direction: 'up'|'down'|'neutral'}
+     * @return array{value: string, direction: 'up'|'down'|'neutral', change: int, previous: int, current: int}
      */
     protected function delta(int $current, int $previous): array
     {
         if ($previous === 0) {
-            return $current > 0
-                ? ['value' => 'New', 'direction' => 'up']
-                : ['value' => '0%', 'direction' => 'neutral'];
+            $value = $current > 0 ? '100%' : '0%';
+            $direction = $current > 0 ? 'up' : 'neutral';
+            $change = $current > 0 ? 100 : 0;
+
+            return [
+                'value' => $value,
+                'direction' => $direction,
+                'change' => $change,
+                'previous' => $previous,
+                'current' => $current,
+            ];
         }
 
-        $change = (int) round((($current - $previous) / $previous) * 100);
+        $rawChange = (($current - $previous) / $previous) * 100;
+        $absoluteChange = abs(round($rawChange));
 
-        if ($change === 0) {
-            return ['value' => '0%', 'direction' => 'neutral'];
+        if ($rawChange == 0) {
+            return [
+                'value' => '0%',
+                'direction' => 'neutral',
+                'change' => 0,
+                'previous' => $previous,
+                'current' => $current,
+            ];
         }
 
         return [
-            'value' => sprintf('%+d%%', $change),
-            'direction' => $change > 0 ? 'up' : 'down',
+            'value' => "{$absoluteChange}%",
+            'direction' => $rawChange > 0 ? 'up' : 'down',
+            'change' => $absoluteChange,
+            'previous' => $previous,
+            'current' => $current,
         ];
     }
 
