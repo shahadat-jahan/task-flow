@@ -27,7 +27,7 @@ import {
 import { useInitials } from '@/composables/useInitials';
 import { useTaskModal } from '@/composables/useTaskModal';
 import { statusBadgeClass, priorityBadgeClass } from '@/lib/taskBadges';
-import { destroy, index, show } from '@/routes/tasks';
+import { destroy, show } from '@/routes/tasks';
 
 type Status = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
 type Priority = 'low' | 'medium' | 'high';

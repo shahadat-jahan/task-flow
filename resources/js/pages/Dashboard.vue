@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import TaskIndexView from '@/Pages/Tasks/Index.vue';
-import { dashboard } from '@/routes';
 import { Head } from '@inertiajs/vue3';
+import TaskIndexView from '@/pages/Tasks/Index.vue';
+import { dashboard } from '@/routes';
 
 // Props passed from the DashboardController via Inertia
 const props = defineProps<{
