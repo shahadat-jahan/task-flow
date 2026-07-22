@@ -2,19 +2,38 @@
 
 namespace App\Services;
 
+use App\Models\Project;
+use App\Models\Tag;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 /**
- * Task CRUD operations, shared by the HTTP controller.
+ * Task CRUD and query-building operations, shared by controllers.
  *
- * The service assumes the caller has already authorized the action (via the
- * TaskPolicy) and validated the input (via the Form Request); it only performs
+ * This service handles both "write" operations (create, update, delete, status change)
+ * and "read" operations (paginated listing, filtering, sorting) so that controllers
+ * stay focused on HTTP concerns without duplicating query logic.
+ *
+ * Write methods assume the caller has already authorized the action (via the
+ * TaskPolicy) and validated the input (via the Form Request); they only perform
  * the persistence work. Tag syncing lives here so create()/update() own the
  * full task-write including its tag relationship.
  */
 class TaskService
 {
+    /**
+     * Allowed sort columns – everything else falls back to 'created_at'.
+     *
+     * @var list<string>
+     */
+    private const SORTABLE = ['due_date', 'priority', 'created_at', 'title'];
+
+    // ─── Write operations ───────────────────────────────────────────────
+
     /**
      * Create a task owned by the given creator, syncing its tags.
      *
@@ -67,5 +86,81 @@ class TaskService
         $task->update(['status' => $status]);
 
         return $task;
+    }
+
+    // ─── Read / query operations ────────────────────────────────────────
+
+    /**
+     * Paginate tasks for the authenticated user, scoped to their ownership.
+     */
+    public function myTasks(Request $request): LengthAwarePaginator
+    {
+        return Task::query()
+            ->with(['assignee', 'creator', 'project', 'tags'])
+            ->where('created_by', $request->user()->id)
+            ->tap(fn (Builder $q) => $this->applyFilters($q, $request))
+            ->orderBy($this->sortColumn($request), $this->direction($request))
+            ->paginate(15)
+            ->withQueryString();
+    }
+
+    /**
+     * Paginate all tasks (visible on the dashboard), without owner scoping.
+     */
+    public function dashboardTasks(Request $request): LengthAwarePaginator
+    {
+        return Task::query()
+            ->with(['assignee:id,name', 'creator:id,name', 'project:id,name', 'tags:id,name,color'])
+            ->tap(fn (Builder $q) => $this->applyFilters($q, $request))
+            ->orderBy($this->sortColumn($request), $this->direction($request))
+            ->paginate(15)
+            ->withQueryString();
+    }
+
+    /**
+     * Select options for filter dropdowns (projects, tags, users).
+     *
+     * @return array{projects: Collection, tags: Collection, users: Collection}
+     */
+    public function filterOptions(): array
+    {
+        return [
+            'projects' => Project::orderBy('name')->get(['id', 'name']),
+            'tags' => Tag::orderBy('name')->get(['id', 'name']),
+            'users' => User::orderBy('name')->get(['id', 'name']),
+        ];
+    }
+
+    /**
+     * Apply reusable filter scopes from the request.
+     */
+    private function applyFilters(Builder $query, Request $request): void
+    {
+        $query
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
+            ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->priority))
+            ->when($request->filled('project_id'), fn ($q) => $q->where('project_id', $request->project_id))
+            ->when($request->filled('tag_id'), fn ($q) => $q->whereHas('tags', fn ($q) => $q->where('id', $request->tag_id)))
+            ->when($request->filled('search'), fn ($q) => $q->where('title', 'like', '%'.$request->search.'%'));
+    }
+
+    /**
+     * Resolve the sort column, restricting to an allowlist.
+     */
+    public function sortColumn(Request $request): string
+    {
+        return in_array($request->sort, self::SORTABLE, true)
+            ? $request->sort
+            : 'created_at';
+    }
+
+    /**
+     * Resolve the sort direction, defaulting to ascending.
+     */
+    public function direction(Request $request): string
+    {
+        return in_array($request->direction, ['asc', 'desc'], true)
+            ? $request->direction
+            : 'asc';
     }
 }
