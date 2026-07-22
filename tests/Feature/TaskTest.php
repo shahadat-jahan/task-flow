@@ -11,18 +11,18 @@ use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('guests cannot access tasks', function () {
-    $this->get(route('tasks.index'))->assertRedirect(route('login'));
-    $this->post(route('tasks.store'))->assertRedirect(route('login'));
+    $this->get(route('my-tasks.index'))->assertRedirect(route('login'));
+    $this->post(route('my-tasks.store'))->assertRedirect(route('login'));
     $task = Task::factory()->create();
-    $this->get(route('tasks.show', $task))->assertRedirect(route('login'));
+    $this->get(route('my-tasks.show', $task))->assertRedirect(route('login'));
 });
 
-test('authenticated user can list tasks with filters, projects, tags, and summary', function () {
+test('authenticated user can list tasks with filters, projects, and tags', function () {
     $user = User::factory()->create();
-    Task::factory()->count(3)->create();
+    Task::factory()->count(3)->create(['created_by' => $user->id]);
 
     $this->actingAs($user)
-        ->get(route('tasks.index'))
+        ->get(route('my-tasks.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Tasks/Index')
@@ -32,13 +32,7 @@ test('authenticated user can list tasks with filters, projects, tags, and summar
             ->has('tags')
             ->has('users')
             ->has('users.0.id')
-            ->has('users.0.name')
-            ->has('users.0.email')
-            ->has('summary')
-            ->has('summary.trends.total_tasks')
-            ->has('summary.trends.completed')
-            ->has('summary.trends.in_progress')
-            ->has('summary.trends.overdue_count'));
+            ->has('users.0.name'));
 });
 
 test('index filters by status, project, and search', function () {
@@ -46,33 +40,35 @@ test('index filters by status, project, and search', function () {
     $project = Project::factory()->create();
 
     Task::factory()->create([
+        'created_by' => $user->id,
         'title' => 'Write the report',
         'status' => TaskStatus::Done,
         'project_id' => $project->id,
     ]);
     Task::factory()->create([
+        'created_by' => $user->id,
         'title' => 'Buy groceries',
         'status' => TaskStatus::Todo,
         'project_id' => null,
     ]);
 
     $this->actingAs($user)
-        ->get(route('tasks.index', ['status' => TaskStatus::Done->value]))
+        ->get(route('my-tasks.index', ['status' => TaskStatus::Done->value]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->has('tasks.data', 1));
 
     $this->actingAs($user)
-        ->get(route('tasks.index', ['project_id' => $project->id]))
+        ->get(route('my-tasks.index', ['project_id' => $project->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->has('tasks.data', 1));
 
     $this->actingAs($user)
-        ->get(route('tasks.index', ['search' => 'report']))
+        ->get(route('my-tasks.index', ['search' => 'report']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->has('tasks.data', 1));
 
     $this->actingAs($user)
-        ->get(route('tasks.index', ['search' => 'nonexistent-term']))
+        ->get(route('my-tasks.index', ['search' => 'nonexistent-term']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->has('tasks.data', 0));
 });
@@ -84,7 +80,7 @@ test('authenticated user can create a task with tags', function () {
     $tags = Tag::factory()->count(2)->create();
 
     $response = $this->actingAs($user)
-        ->post(route('tasks.store'), [
+        ->post(route('my-tasks.store'), [
             'title' => 'Ship the feature',
             'description' => 'Details here',
             'status' => TaskStatus::InProgress->value,
@@ -96,7 +92,7 @@ test('authenticated user can create a task with tags', function () {
         ]);
 
     $response->assertSessionHasNoErrors();
-    $response->assertRedirect(route('tasks.index'));
+    $response->assertRedirect(route('my-tasks.index'));
 
     $task = Task::where('title', 'Ship the feature')->first();
     expect($task)->not->toBeNull();
@@ -109,7 +105,7 @@ test('task cannot be created with invalid data', function () {
     Tag::factory()->create();
 
     $response = $this->actingAs($user)
-        ->post(route('tasks.store'), [
+        ->post(route('my-tasks.store'), [
             'title' => '',
             'status' => 'not-a-status',
             'priority' => 'urgent',
@@ -123,12 +119,12 @@ test('task cannot be created with invalid data', function () {
 
 test('authenticated user can view a task with comments and attachments', function () {
     $user = User::factory()->create();
-    $task = Task::factory()->create();
+    $task = Task::factory()->create(['created_by' => $user->id]);
     TaskComment::factory()->create(['task_id' => $task->id, 'user_id' => $user->id]);
     TaskAttachment::factory()->create(['task_id' => $task->id, 'uploaded_by' => $user->id]);
 
     $this->actingAs($user)
-        ->get(route('tasks.show', $task))
+        ->get(route('my-tasks.show', $task))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Tasks/Show')
@@ -143,8 +139,8 @@ test('creator can update a task and its tags', function () {
     $tag = Tag::factory()->create();
 
     $response = $this->actingAs($creator)
-        ->from(route('tasks.index'))
-        ->put(route('tasks.update', $task), [
+        ->from(route('my-tasks.index'))
+        ->put(route('my-tasks.update', $task), [
             'title' => 'Renamed task',
             'status' => TaskStatus::InReview->value,
             'priority' => TaskPriority::Low->value,
@@ -152,7 +148,7 @@ test('creator can update a task and its tags', function () {
         ]);
 
     $response->assertSessionHasNoErrors();
-    $response->assertRedirect(route('tasks.index'));
+    $response->assertRedirect(route('my-tasks.index'));
 
     $task->refresh();
     expect($task->title)->toBe('Renamed task');
@@ -166,7 +162,7 @@ test('non-creator cannot update a task', function () {
     $task = Task::factory()->create(['created_by' => $creator->id]);
 
     $this->actingAs($other)
-        ->put(route('tasks.update', $task), [
+        ->put(route('my-tasks.update', $task), [
             'title' => 'Hijacked',
             'status' => TaskStatus::Done->value,
             'priority' => TaskPriority::Low->value,
@@ -182,15 +178,15 @@ test('creator can delete a task; non-creator cannot', function () {
     $task = Task::factory()->create(['created_by' => $creator->id]);
 
     $this->actingAs($other)
-        ->delete(route('tasks.destroy', $task))
+        ->delete(route('my-tasks.destroy', $task))
         ->assertForbidden();
 
     expect(Task::find($task->id))->not->toBeNull();
 
     $this->actingAs($creator)
-        ->from(route('tasks.index'))
-        ->delete(route('tasks.destroy', $task))
-        ->assertRedirect(route('tasks.index'));
+        ->from(route('my-tasks.index'))
+        ->delete(route('my-tasks.destroy', $task))
+        ->assertRedirect(route('my-tasks.index'));
 
     expect(Task::find($task->id))->toBeNull();
 });
@@ -204,11 +200,11 @@ test('creator can change a task status inline; non-creator cannot', function () 
     ]);
 
     $this->actingAs($other)
-        ->patch(route('tasks.status.update', $task), ['status' => TaskStatus::Done->value])
+        ->patch(route('my-tasks.status.update', $task), ['status' => TaskStatus::Done->value])
         ->assertForbidden();
 
     $this->actingAs($creator)
-        ->patch(route('tasks.status.update', $task), ['status' => TaskStatus::Done->value])
+        ->patch(route('my-tasks.status.update', $task), ['status' => TaskStatus::Done->value])
         ->assertRedirect();
 
     expect($task->refresh()->status)->toBe(TaskStatus::Done);
@@ -221,6 +217,7 @@ test('combined status, priority, project, and tag filters narrow correctly', fun
     // Create the tasks before any tag exists so the factory's auto-tag hook is a no-op,
     // letting us control tag membership explicitly below.
     $matching = Task::factory()->create([
+        'created_by' => $user->id,
         'status' => TaskStatus::Done,
         'priority' => TaskPriority::High,
         'project_id' => $project->id,
@@ -228,6 +225,7 @@ test('combined status, priority, project, and tag filters narrow correctly', fun
 
     // Same status + priority + project, but without the tag.
     Task::factory()->create([
+        'created_by' => $user->id,
         'status' => TaskStatus::Done,
         'priority' => TaskPriority::High,
         'project_id' => $project->id,
@@ -235,6 +233,7 @@ test('combined status, priority, project, and tag filters narrow correctly', fun
 
     // Same status + priority + tag, but without the project.
     $tagOnly = Task::factory()->create([
+        'created_by' => $user->id,
         'status' => TaskStatus::Done,
         'priority' => TaskPriority::High,
         'project_id' => null,
@@ -245,7 +244,7 @@ test('combined status, priority, project, and tag filters narrow correctly', fun
     $tagOnly->tags()->attach($tag->id);
 
     $this->actingAs($user)
-        ->get(route('tasks.index', [
+        ->get(route('my-tasks.index', [
             'status' => TaskStatus::Done->value,
             'priority' => TaskPriority::High->value,
             'project_id' => $project->id,
@@ -256,7 +255,7 @@ test('combined status, priority, project, and tag filters narrow correctly', fun
 
     // Dropping the tag filter broadens the result to the project-mate too.
     $this->actingAs($user)
-        ->get(route('tasks.index', [
+        ->get(route('my-tasks.index', [
             'status' => TaskStatus::Done->value,
             'priority' => TaskPriority::High->value,
             'project_id' => $project->id,

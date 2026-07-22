@@ -19,8 +19,8 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useInitials } from '@/composables/useInitials';
 import { dashboard } from '@/routes';
+import { index as myTasksIndex } from '@/routes/my-tasks';
 import { edit as profileEdit } from '@/routes/profile';
-import { index as tasksIndex } from '@/routes/tasks';
 import type { NavItem } from '@/types';
 
 const emit = defineEmits<{
@@ -30,13 +30,14 @@ const emit = defineEmits<{
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const projects = computed(() => page.props.sidebarProjects ?? []);
+const myTasksCount = computed(() => page.props.sidebarMyTasksCount ?? 0);
 
 const { isCurrentUrl } = useCurrentUrl();
 const { getInitials } = useInitials();
 
 const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
-    { title: 'My Tasks', href: tasksIndex(), icon: ListTodo },
+    { title: 'My Tasks', href: myTasksIndex(), icon: ListTodo },
     { title: 'Profile', href: profileEdit(), icon: User },
     { title: 'Settings', href: profileEdit(), icon: Settings },
 ];
@@ -69,6 +70,12 @@ const mainNavItems: NavItem[] = [
                 >
                     <component :is="item.icon" class="size-4" />
                     <span>{{ item.title }}</span>
+                    <span
+                        v-if="item.title === 'My Tasks' && myTasksCount > 0"
+                        class="ml-auto text-xs font-medium tabular-nums"
+                    >
+                        {{ myTasksCount }}
+                    </span>
                 </Link>
             </nav>
 

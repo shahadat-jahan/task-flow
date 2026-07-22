@@ -7,7 +7,7 @@ use App\Models\User;
 test('guests cannot post comments', function () {
     $task = Task::factory()->create();
 
-    $this->post(route('tasks.comments.store', $task))
+    $this->post(route('my-tasks.comments.store', $task))
         ->assertRedirect(route('login'));
 });
 
@@ -16,12 +16,12 @@ test('authenticated user can comment on a task', function () {
     $task = Task::factory()->create();
 
     $response = $this->actingAs($user)
-        ->post(route('tasks.comments.store', $task), [
+        ->post(route('my-tasks.comments.store', $task), [
             'body' => 'Looks good to me',
         ]);
 
     $response->assertSessionHasNoErrors();
-    $response->assertRedirect(route('tasks.show', $task));
+    $response->assertRedirect(route('my-tasks.show', $task));
 
     expect(TaskComment::where('task_id', $task->id)->where('user_id', $user->id)->exists())
         ->toBeTrue();
@@ -32,7 +32,7 @@ test('comment cannot be created with an empty body', function () {
     $task = Task::factory()->create();
 
     $response = $this->actingAs($user)
-        ->post(route('tasks.comments.store', $task), [
+        ->post(route('my-tasks.comments.store', $task), [
             'body' => '',
         ]);
 
@@ -47,7 +47,7 @@ test('author can delete their own comment', function () {
     $response = $this->actingAs($author)
         ->delete(route('comments.destroy', $comment));
 
-    $response->assertRedirect(route('tasks.show', $comment->task_id));
+    $response->assertRedirect(route('my-tasks.show', $comment->task_id));
     expect(TaskComment::find($comment->id))->toBeNull();
 });
 

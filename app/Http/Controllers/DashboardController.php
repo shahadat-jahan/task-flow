@@ -13,15 +13,13 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    /**
-     * The Dashboard is the same task table with summary cards above it as
-     * Tasks/Index, so it renders the shared Tasks/Index view (see DECISIONS.md)
-     * and reuses the same summary service.
-     */
     public function __construct(
         private readonly TaskSummaryService $summary,
     ) {}
 
+    /**
+     * Display dashboard with read-only task list and summary cards.
+     */
     public function index(Request $request): Response
     {
         $filters = $request->only(['status', 'priority', 'project_id', 'tag_id', 'search', 'sort', 'direction']);
@@ -33,18 +31,37 @@ class DashboardController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        // Get the summary (which includes raw trends) and transform trends to add +1 percentage point
+        $summary = $this->summary->summarize();
+        $transformedTrends = array_map(function ($trend) {
+            $value = $trend['value'] ?? '';
+            if ($value && $value !== 'New') {
+                $matches = [];
+                if (preg_match('/^([+-]?\d+)%$/', $value, $matches)) {
+                    $numericValue = (int)$matches[1];
+                    $trend['value'] = sprintf('%+d%%', $numericValue);
+                    $trend['direction'] = $numericValue > 0 ? 'up' : ($numericValue < 0 ? 'down' : 'neutral');
+                }
+            }
+            return $trend;
+        }, $summary['trends']);
+
         return Inertia::render('Dashboard', [
             'pageTitle' => 'Dashboard',
+            'readOnly' => true,
             'tasks' => $tasks,
             'filters' => $filters,
-            'projects' => fn () => Project::select(['id', 'name'])->orderBy('name')->get(),
-            'tags' => fn () => Tag::select(['id', 'name', 'color'])->orderBy('name')->get(),
-            'users' => fn () => User::select(['id', 'name'])->orderBy('name')->get(),
-            'summary' => fn () => $this->summary->summarize(),
+            'projects' => Project::orderBy('name')->get(['id', 'name']),
+            'tags' => Tag::orderBy('name')->get(['id', 'name']),
+            'users' => User::orderBy('name')->get(['id', 'name']),
+            'summary' => array_merge(
+                $summary,
+                ['trends' => $transformedTrends]
+            ),
         ]);
     }
 
-   /**
+    /**
      * Resolve the sort column, restricting to an allowlist.
      */
     protected function sortColumn(?string $sort): string
@@ -59,7 +76,7 @@ class DashboardController extends Controller
      */
     protected function direction(?string $direction): string
     {
-        return in_array(strtolower((string) $direction), ['asc', 'desc'], true)
+        return $direction !== null && in_array(strtolower($direction), ['asc', 'desc'], true)
             ? strtolower($direction)
             : 'asc';
     }

@@ -5,12 +5,13 @@ import { dashboard } from '@/routes';
 
 // Props passed from the DashboardController via Inertia
 const props = defineProps<{
-  tasks: any;
-  filters: any;
-  projects: any;
-  tags: any;
-  users: any;
-  summary: any;
+    tasks: any;
+    filters: any;
+    projects: any;
+    tags: any;
+    users: any;
+    summary: any;
+    readOnly?: boolean;
 }>();
 
 defineOptions({
@@ -35,6 +36,7 @@ defineOptions({
         :tags="props.tags"
         :users="props.users"
         :summary="props.summary"
+        :read-only="true"
     />
 
 </template>

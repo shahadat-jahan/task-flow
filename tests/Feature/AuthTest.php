@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Hash;
 
 test('guests are redirected away from authenticated pages', function () {
     $this->get(route('dashboard'))->assertRedirect(route('login'));
-    $this->get(route('tasks.index'))->assertRedirect(route('login'));
+    $this->get(route('my-tasks.index'))->assertRedirect(route('login'));
 });
 
 test('a verified user can log in with valid credentials', function () {

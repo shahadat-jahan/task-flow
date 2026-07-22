@@ -25,7 +25,7 @@ class TaskCommentController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Comment added.')]);
 
-        return to_route('tasks.show', $task);
+        return to_route('my-tasks.show', $task);
     }
 
     /**
@@ -39,6 +39,6 @@ class TaskCommentController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Comment deleted.')]);
 
-        return to_route('tasks.show', $comment->task_id);
+        return to_route('my-tasks.show', $comment->task_id);
     }
 }

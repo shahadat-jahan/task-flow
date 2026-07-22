@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Project;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -56,6 +57,9 @@ class HandleInertiaRequests extends Middleware
                     ])
                     ->all()
                 : [],
+            'sidebarMyTasksCount' => $request->user()
+                ? Task::where('created_by', $request->user()->id)->count()
+                : 0,
         ];
     }
 }

@@ -5,12 +5,12 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Tasks',
-                href: '/tasks',
+                title: 'My Tasks',
+                href: '/my-tasks',
             },
             {
                 title: 'Edit task',
-                href: '/tasks',
+                href: '/my-tasks',
             },
         ],
     },

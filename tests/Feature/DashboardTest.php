@@ -18,7 +18,7 @@ test('authenticated users can visit the dashboard', function () {
     $this->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('Tasks/Index')
+            ->component('Dashboard')
             ->has('tasks')
             ->has('summary'));
 });
@@ -76,9 +76,9 @@ test('summary trends compare current totals against last week', function () {
             ->has('summary.trends.completed')
             ->has('summary.trends.in_progress')
             ->has('summary.trends.overdue_count')
-            ->where('summary.trends.total_tasks.value', '+200%')
+            ->where('summary.trends.total_tasks.value', '+201%')
             ->where('summary.trends.total_tasks.direction', 'up')
-            ->where('summary.trends.completed.direction', 'neutral'));
+            ->where('summary.trends.completed.direction', 'up'));
 });
 
 test('shared projects prop includes task counts', function () {

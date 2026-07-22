@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 test('guests cannot upload attachments', function () {
     $task = Task::factory()->create();
 
-    $this->post(route('tasks.attachments.store', $task))
+    $this->post(route('my-tasks.attachments.store', $task))
         ->assertRedirect(route('login'));
 });
 
@@ -19,12 +19,12 @@ test('authenticated user can attach a file', function () {
     $task = Task::factory()->create();
 
     $response = $this->actingAs($user)
-        ->post(route('tasks.attachments.store', $task), [
+        ->post(route('my-tasks.attachments.store', $task), [
             'file' => UploadedFile::fake()->create('report.pdf', 100, 'application/pdf'),
         ]);
 
     $response->assertSessionHasNoErrors();
-    $response->assertRedirect(route('tasks.show', $task));
+    $response->assertRedirect(route('my-tasks.show', $task));
 
     $attachment = TaskAttachment::where('task_id', $task->id)->where('uploaded_by', $user->id)->first();
     expect($attachment)->not->toBeNull();
@@ -38,7 +38,7 @@ test('attachment cannot be created with a disallowed type', function () {
     $task = Task::factory()->create();
 
     $response = $this->actingAs($user)
-        ->post(route('tasks.attachments.store', $task), [
+        ->post(route('my-tasks.attachments.store', $task), [
             'file' => UploadedFile::fake()->create('evil.exe', 10),
         ]);
 
@@ -56,7 +56,7 @@ test('uploader can delete their own attachment and its file', function () {
     $response = $this->actingAs($uploader)
         ->delete(route('attachments.destroy', $attachment));
 
-    $response->assertRedirect(route('tasks.show', $attachment->task_id));
+    $response->assertRedirect(route('my-tasks.show', $attachment->task_id));
     Storage::disk('public')->assertMissing($attachment->stored_path);
     expect(TaskAttachment::find($attachment->id))->toBeNull();
 });

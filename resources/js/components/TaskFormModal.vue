@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import type { TaskFormTask } from '@/composables/useTaskModal';
-import { destroy, store, update } from '@/routes/tasks';
+import { destroy, store, update } from '@/routes/my-tasks';
 
 const props = defineProps<{
     open: boolean;

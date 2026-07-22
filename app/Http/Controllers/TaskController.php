@@ -28,12 +28,13 @@ class TaskController extends Controller
     ) {}
 
     /**
-     * Display a paginated, filterable, sortable list of tasks.
+     * Display a paginated, filterable, sortable list of tasks for the authenticated user.
      */
-    public function index(Request $request): Response
+    public function myTasks(Request $request): Response
     {
         $tasks = Task::query()
             ->with(['assignee', 'creator', 'project', 'tags'])
+            ->where('created_by', $request->user()->id)
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->priority))
             ->when($request->filled('project_id'), fn ($q) => $q->where('project_id', $request->project_id))
@@ -44,14 +45,12 @@ class TaskController extends Controller
             ->withQueryString();
 
         return Inertia::render('Tasks/Index', [
-            'pageTitle' => 'Tasks',
             'tasks' => $tasks,
             'filters' => $request->only(['status', 'priority', 'project_id', 'tag_id', 'search', 'sort', 'direction']),
             'projects' => Project::orderBy('name')->get(['id', 'name']),
             'tags' => Tag::orderBy('name')->get(['id', 'name']),
             'users' => User::orderBy('name')->get(['id', 'name']),
-        'summary' => $this->summary->summarize(),
-    ]);
+        ]);
     }
 
     /**
@@ -65,7 +64,7 @@ class TaskController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Task created.')]);
 
-        return to_route('tasks.index');
+        return to_route('my-tasks.index');
     }
 
     /**

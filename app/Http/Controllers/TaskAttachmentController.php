@@ -27,7 +27,7 @@ class TaskAttachmentController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Attachment added.')]);
 
-        return to_route('tasks.show', $task);
+        return to_route('my-tasks.show', $task);
     }
 
     /**
@@ -41,6 +41,6 @@ class TaskAttachmentController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Attachment deleted.')]);
 
-        return to_route('tasks.show', $attachment->task_id);
+        return to_route('my-tasks.show', $attachment->task_id);
     }
 }

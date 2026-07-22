@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { useForm, router, usePage, Head } from '@inertiajs/vue3';
-import { MessageSquare, Paperclip, Trash2 } from '@lucide/vue';
+import { MessageSquare, Paperclip, Trash2, Edit } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -17,9 +16,10 @@ import { useInitials } from '@/composables/useInitials';
 import { priorityBadgeClass, statusBadgeClass } from '@/lib/taskBadges';
 import { destroy as destroyAttachment } from '@/routes/attachments';
 import { destroy as destroyComment } from '@/routes/comments';
-import { store as storeAttachment } from '@/routes/tasks/attachments';
-import { store as storeComment } from '@/routes/tasks/comments';
-import { update as updateStatus } from '@/routes/tasks/status';
+import { edit as editTask } from '@/routes/my-tasks';
+import { store as storeAttachment } from '@/routes/my-tasks/attachments';
+import { store as storeComment } from '@/routes/my-tasks/comments';
+import { update as updateStatus } from '@/routes/my-tasks/status';
 
 interface UserSummary {
     id: number;
@@ -117,7 +117,6 @@ const priorityLabel = computed(
 const comments = computed(() => props.task.comments ?? []);
 const attachments = computed(() => props.task.attachments ?? []);
 
-// Inline status update.
 const selectedStatus = ref(props.task.status);
 watch(
     () => props.task.status,
@@ -196,7 +195,6 @@ function timeAgo(date: string): string {
     return formatDate(date);
 }
 
-// Comments.
 const commentForm = useForm({
     body: '',
 });
@@ -212,7 +210,6 @@ function deleteComment(id: number): void {
     router.delete(destroyComment.url(id), { preserveScroll: true });
 }
 
-// Attachments.
 const attachmentForm = useForm<{ file: File | null }>({
     file: null,
 });
@@ -233,6 +230,10 @@ function submitAttachment(): void {
 function deleteAttachment(id: number): void {
     router.delete(destroyAttachment.url(id), { preserveScroll: true });
 }
+
+function navigateToEdit(): void {
+    router.visit(editTask.url(props.task.id));
+}
 </script>
 
 <template>
@@ -242,10 +243,8 @@ function deleteAttachment(id: number): void {
         <!-- Header card -->
         <div class="rounded-lg border border-border bg-white p-4 sm:p-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <h1
-                        class="text-xl font-semibold tracking-tight sm:text-2xl"
-                    >
+                <div class="min-w-0 flex-1">
+                    <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">
                         {{ task.title }}
                     </h1>
                     <div class="mt-2 flex flex-wrap items-center gap-2">
@@ -264,22 +263,32 @@ function deleteAttachment(id: number): void {
                     </div>
                 </div>
 
-                <div class="w-full sm:w-44">
-                    <Label class="text-xs text-muted-foreground">Status</Label>
-                    <Select v-model="selectedStatus">
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem
-                                v-for="option in statusOptions"
-                                :key="option.value"
-                                :value="option.value"
-                            >
-                                {{ option.label }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div class="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        @click="navigateToEdit"
+                    >
+                        <Edit class="size-4 mr-2" />
+                        Edit
+                    </Button>
+                    <div class="w-full sm:w-44">
+                        <Select v-model="selectedStatus">
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="option in statusOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
 

@@ -26,8 +26,13 @@ import {
 } from '@/components/ui/select';
 import { useInitials } from '@/composables/useInitials';
 import { useTaskModal } from '@/composables/useTaskModal';
-import { statusBadgeClass, priorityBadgeClass } from '@/lib/taskBadges';
-import { destroy, show } from '@/routes/tasks';
+import { priorityBadgeClass, statusBadgeClass } from '@/lib/taskBadges';
+import { destroy, show } from '@/routes/my-tasks';
+import { destroy as destroyAttachment } from '@/routes/attachments';
+import { destroy as destroyComment } from '@/routes/comments';
+import { store as storeAttachment } from '@/routes/my-tasks/attachments';
+import { store as storeComment } from '@/routes/my-tasks/comments';
+import { update as updateStatus } from '@/routes/my-tasks/status';
 
 type Status = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
 type Priority = 'low' | 'medium' | 'high';
@@ -66,6 +71,7 @@ interface Task {
     assignee_id: number | null;
     project_id: number | null;
     assignee: UserSummary | null;
+    creator: UserSummary | null;
     project: ProjectSummary | null;
     tags: TagSummary[];
 }
@@ -102,7 +108,8 @@ const props = defineProps<{
     projects: ProjectSummary[];
     tags: TagSummary[];
     users: UserSummary[];
-    summary: TaskSummary;
+    summary?: TaskSummary;
+    readOnly?: boolean;
 }>();
 
 const { getInitials } = useInitials();
@@ -139,36 +146,40 @@ const formatDate = (date: string): string =>
         day: 'numeric',
     });
 
-const summaryCards = computed(() => [
-    {
-        label: 'Total Tasks',
-        value: props.summary.total_tasks,
-        icon: ListTodo,
-        iconClass: 'bg-indigo-50 text-indigo-600',
-        trend: props.summary.trends.total_tasks,
-    },
-    {
-        label: 'Completed',
-        value: props.summary.by_status.done ?? 0,
-        icon: CircleCheck,
-        iconClass: 'bg-emerald-50 text-emerald-600',
-        trend: props.summary.trends.completed,
-    },
-    {
-        label: 'In Progress',
-        value: props.summary.by_status.in_progress ?? 0,
-        icon: Clock,
-        iconClass: 'bg-amber-50 text-amber-600',
-        trend: props.summary.trends.in_progress,
-    },
-    {
-        label: 'Overdue',
-        value: props.summary.overdue_count,
-        icon: AlertTriangle,
-        iconClass: 'bg-red-50 text-red-600',
-        trend: props.summary.trends.overdue_count,
-    },
-]);
+const summaryCards = computed(() =>
+    props.readOnly !== true
+        ? []
+        : [
+              {
+                  label: 'Total Tasks',
+                  value: props.summary?.total_tasks ?? 0,
+                  icon: ListTodo,
+                  iconClass: 'bg-indigo-50 text-indigo-600',
+                  trend: props.summary?.trends.total_tasks,
+              },
+              {
+                  label: 'Completed',
+                  value: props.summary?.by_status.done ?? 0,
+                  icon: CircleCheck,
+                  iconClass: 'bg-emerald-50 text-emerald-600',
+                  trend: props.summary?.trends.completed,
+              },
+              {
+                  label: 'In Progress',
+                  value: props.summary?.by_status.in_progress ?? 0,
+                  icon: Clock,
+                  iconClass: 'bg-amber-50 text-amber-600',
+                  trend: props.summary?.trends.in_progress,
+              },
+              {
+                  label: 'Overdue',
+                  value: props.summary?.overdue_count ?? 0,
+                  icon: AlertTriangle,
+                  iconClass: 'bg-red-50 text-red-600',
+                  trend: props.summary?.trends.overdue_count,
+              },
+          ],
+);
 
 const statusFilter = ref<string>(props.filters.status ?? 'all');
 const priorityFilter = ref<string>(props.filters.priority ?? 'all');
@@ -285,7 +296,7 @@ function openTask(task: Task): void {
 
     <div class="space-y-6">
         <!-- Summary cards -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div v-if="props.readOnly" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <SummaryCard
                 v-for="card in summaryCards"
                 :key="card.label"
@@ -421,7 +432,7 @@ function openTask(task: Task): void {
         <!-- Desktop table -->
         <div
             v-else
-            class="hidden overflow-hidden rounded-lg border border-border bg-white md:block"
+            class="overflow-hidden rounded-lg border border-border bg-white md:block"
         >
             <table class="w-full text-sm">
                 <thead
@@ -443,7 +454,7 @@ function openTask(task: Task): void {
                         <th class="px-4 py-3 text-left font-medium">
                             Due Date
                         </th>
-                        <th class="w-24 px-4 py-3 text-right font-medium">
+                        <th v-if="!readOnly" class="w-24 px-4 py-3 text-right font-medium">
                             Actions
                         </th>
                     </tr>
@@ -452,7 +463,7 @@ function openTask(task: Task): void {
                     <tr
                         v-for="task in tasks.data"
                         :key="task.id"
-                        class="cursor-pointer transition-colors hover:bg-muted/40"
+                        class="transition-colors hover:bg-muted/40 cursor-pointer"
                         @click="openTask(task)"
                     >
                         <td class="px-4 py-3" @click.stop>
@@ -482,9 +493,7 @@ function openTask(task: Task): void {
                                 >
                                     <span
                                         class="size-2 shrink-0 rounded-full"
-                                        :style="{
-                                            backgroundColor: task.project.color,
-                                        }"
+                                        :style="{ backgroundColor: task.project.color }"
                                     />
                                     {{ task.project.name }}
                                 </span>
@@ -523,9 +532,7 @@ function openTask(task: Task): void {
                                         {{ getInitials(task.assignee.name) }}
                                     </AvatarFallback>
                                 </Avatar>
-                                <span class="truncate">{{
-                                    task.assignee.name
-                                }}</span>
+                                <span class="truncate">{{ task.assignee.name }}</span>
                             </div>
                             <span v-else class="text-muted-foreground">—</span>
                         </td>
@@ -537,12 +544,10 @@ function openTask(task: Task): void {
                                     : 'text-muted-foreground'
                             "
                         >
-                            <span v-if="task.due_date">{{
-                                formatDate(task.due_date)
-                            }}</span>
+                            <span v-if="task.due_date">{{ formatDate(task.due_date) }}</span>
                             <span v-else>—</span>
                         </td>
-                        <td class="px-4 py-3" @click.stop>
+                        <td v-if="!readOnly" class="px-4 py-3" @click.stop>
                             <div class="flex items-center justify-end gap-1">
                                 <button
                                     type="button"
@@ -585,6 +590,7 @@ function openTask(task: Task): void {
                         </p>
                     </div>
                     <button
+                        v-if="!readOnly"
                         type="button"
                         class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
                         @click="pendingDelete = task"
