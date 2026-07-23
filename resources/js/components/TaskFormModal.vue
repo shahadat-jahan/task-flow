@@ -58,8 +58,8 @@ const priorityOptions: { value: string; label: string }[] = [
 const form = useForm({
     title: '',
     description: '',
-    status: '',
-    priority: '',
+    status: 'todo',
+    priority: 'low',
     due_date: '',
     assignee_id: 'none',
     project_id: 'none',

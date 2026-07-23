@@ -72,8 +72,10 @@ class TaskService
 
     /**
      * Delete a task.
+     *
+     * @return void
      */
-    public function destroy(Task $task): void
+    public function delete(Task $task): void
     {
         $task->delete();
     }

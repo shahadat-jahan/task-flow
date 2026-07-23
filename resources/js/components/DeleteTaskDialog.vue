@@ -43,7 +43,7 @@ const emit = defineEmits<{
                 </DialogDescription>
             </DialogHeader>
 
-            <DialogFooter class="gap-2 sm:gap-0">
+            <DialogFooter class="gap-2 sm:justify-between sm:gap-0">
                 <Button variant="outline" @click="emit('cancel')">
                     Cancel
                 </Button>
