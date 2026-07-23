@@ -84,6 +84,10 @@ const avatarPalette = [
     { bg: '#DBEAFE', fg: '#1447E6' }, // blue
     { bg: '#D0FAE5', fg: '#007A55' }, // green
     { bg: '#EDE9FE', fg: '#7008E7' }, // purple
+    { bg: '#D1FAE5', fg: '#065F46' }, // emerald
+    { bg: '#FFE4E6', fg: '#9F1239' }, // rose
+    { bg: '#FFFBEB', fg: '#B45309' }, // amber
+    { bg: '#E0E7FF', fg: '#4338CA' }, // indigo
 ];
 
 function avatarStyle(userId: number) {

@@ -97,10 +97,11 @@ class TaskService
     {
         return Task::query()
             ->with(['assignee', 'creator', 'project', 'tags'])
+            ->withCount(['comments', 'attachments'])
             ->where('created_by', $request->user()->id)
             ->tap(fn (Builder $q) => $this->applyFilters($q, $request))
             ->orderBy($this->sortColumn($request), $this->direction($request))
-            ->paginate(15)
+            ->paginate($this->perPage($request) ?? 10)
             ->withQueryString();
     }
 
@@ -111,9 +112,10 @@ class TaskService
     {
         return Task::query()
             ->with(['assignee:id,name', 'creator:id,name', 'project:id,name,color', 'tags:id,name,color'])
+            ->withCount(['comments', 'attachments'])
             ->tap(fn (Builder $q) => $this->applyFilters($q, $request))
             ->orderBy($this->sortColumn($request), $this->direction($request))
-            ->paginate(15)
+            ->paginate($this->perPage($request) ?? 10)
             ->withQueryString();
     }
 
@@ -162,5 +164,17 @@ class TaskService
         return in_array($request->direction, ['asc', 'desc'], true)
             ? $request->direction
             : 'asc';
+    }
+
+    /**
+     * Resolve the per-page value, defaulting to 15.
+     *
+     * @return int<5, 100>
+     */
+    private function perPage(Request $request): int
+    {
+        $value = (int) $request->query('per_page', 15);
+
+        return in_array($value, [5, 10, 15, 25, 50, 100], true) ? $value : 15;
     }
 }

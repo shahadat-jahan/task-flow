@@ -2,27 +2,27 @@ import { Circle, RefreshCw, Eye, CheckCircle2, X } from '@lucide/vue';
 
 export const taskStatusConfig = {
   todo: {
-    badge: 'bg-white text-slate-500 border-slate-200',
+    badge: 'bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB]',
     icon: Circle,
     label: 'Todo',
   },
   in_progress: {
-    badge: 'bg-[#EFF6FF] text-[#1447E6] border-[#BEDBFF]',
+    badge: 'bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE]',
     icon: RefreshCw,
     label: 'In Progress',
   },
   in_review: {
-    badge: 'bg-[#FAF5FF] text-[#9810FA] border-[#E9D4FF]',
+    badge: 'bg-[#F3E8FF] text-[#9333EA] border-[#E9D5FF]',
     icon: Eye,
     label: 'In Review',
   },
   done: {
-    badge: 'bg-[#F0FDF4] text-[#00A63E] border-[#B9F8CF]',
+    badge: 'bg-[#ECFDF5] text-[#059669] border-[#A7F3D0]',
     icon: CheckCircle2,
     label: 'Done',
   },
   cancelled: {
-    badge: 'bg-white text-slate-400 border-slate-200',
+    badge: 'bg-[#F3F4F6] text-[#6B7280] border-[#E5E7EB]',
     icon: X,
     label: 'Cancelled',
   },
@@ -30,27 +30,27 @@ export const taskStatusConfig = {
 
 export const taskPriorityConfig = {
   low: {
-    badge: 'bg-slate-100 text-slate-500 border-slate-200',
-    indicator: 'bg-slate-400',
-    dotSmall: 'bg-slate-400 size-1.5 shrink-0 rounded-full',
+    badge: 'bg-[#F1F5F9] text-[#64748B] border-[#E2E8F0]',
+    indicator: 'bg-[#94A3B8]',
+    dotSmall: 'bg-[#94A3B8] size-1.5 shrink-0 rounded-full',
     label: 'Low',
   },
   medium: {
-    badge: 'bg-[#FFFBEB] text-[#D08700] border-[#FEE685]',
-    indicator: 'bg-amber-500',
-    dotSmall: 'bg-amber-500 size-1.5 shrink-0 rounded-full',
+    badge: 'bg-[#FFFBEB] text-[#D97706] border-[#FEF3C7]',
+    indicator: 'bg-[#F59E0B]',
+    dotSmall: 'bg-[#F59E0B] size-1.5 shrink-0 rounded-full',
     label: 'Medium',
   },
   high: {
-    badge: 'bg-[#FFF7ED] text-[#CA3500] border-[#FFD6A8]',
-    indicator: 'bg-orange-500',
-    dotSmall: 'bg-orange-500 size-1.5 shrink-0 rounded-full',
+    badge: 'bg-[#FFF7ED] text-[#EA580C] border-[#FFEDD5]',
+    indicator: 'bg-[#F97316]',
+    dotSmall: 'bg-[#F97316] size-1.5 shrink-0 rounded-full',
     label: 'High',
   },
   urgent: {
-    badge: 'bg-[#FEF2F2] text-[#E7000B] border-[#FFC9C9]',
-    indicator: 'bg-red-500',
-    dotSmall: 'bg-red-500 size-1.5 shrink-0 rounded-full',
+    badge: 'bg-[#FEF2F2] text-[#DC2626] border-[#FECACA]',
+    indicator: 'bg-[#EF4444]',
+    dotSmall: 'bg-[#EF4444] size-1.5 shrink-0 rounded-full',
     label: 'Urgent',
   },
 } as const;

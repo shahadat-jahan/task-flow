@@ -5,8 +5,12 @@ import {
     AlertCircle,
     Calendar,
     CircleCheck,
+    MessageSquare,
+    Paperclip,
     Plus,
     SquareCheck,
+    SquarePen,
+    Trash2,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import DeleteTaskDialog from '@/components/DeleteTaskDialog.vue';
@@ -24,7 +28,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useInitials } from '@/composables/useInitials';
-import { taskPriorityConfig, taskProjectConfig, taskStatusConfig } from '@/composables/useTaskBadges';
+import { taskPriorityConfig,taskProjectConfig, taskStatusConfig } from '@/composables/useTaskBadges';
 import { useTaskModal } from '@/composables/useTaskModal';
 import { destroy, show } from '@/routes/my-tasks';
 
@@ -71,6 +75,8 @@ interface Task {
     creator: UserSummary | null;
     project: ProjectSummary | null;
     tags: TagSummary[];
+    comments_count?: number;
+    attachments_count?: number;
 }
 
 interface TaskSummary {
@@ -87,6 +93,7 @@ interface TaskSummary {
 
 interface PaginatedTasks {
     data: Task[];
+    total?: number;
     links: { url: string | null; label: string; active: boolean }[];
 }
 
@@ -101,6 +108,7 @@ const props = defineProps<{
         search: string | null;
         sort: string | null;
         direction: string | null;
+        per_page: number | null;
     };
     projects: ProjectSummary[];
     tags: TagSummary[];
@@ -111,6 +119,29 @@ const props = defineProps<{
 
 const { getInitials } = useInitials();
 const { isOpen, editingTask, openEdit, openCreate, close } = useTaskModal();
+
+const avatarColors = [
+    'bg-purple-100 text-purple-700 border-purple-200',
+    'bg-blue-100 text-blue-700 border-blue-200',
+    'bg-emerald-100 text-emerald-700 border-emerald-200',
+    'bg-rose-100 text-rose-700 border-rose-200',
+    'bg-amber-100 text-amber-700 border-amber-200',
+    'bg-indigo-100 text-indigo-700 border-indigo-200',
+];
+
+function getAvatarBg(name?: string | null): string {
+    if (!name) {
+        return avatarColors[0];
+    }
+
+    let hash = 0;
+
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    return avatarColors[Math.abs(hash) % avatarColors.length];
+}
 
 const statusOptions: { value: Status; label: string }[] = [
     { value: 'todo', label: 'Todo' },
@@ -124,7 +155,7 @@ const priorityOptions: { value: Priority; label: string }[] = [
     { value: 'low', label: 'Low' },
     { value: 'medium', label: 'Medium' },
     { value: 'high', label: 'High' },
-    { value: 'urgent', label: 'Urgent'},
+    { value: 'urgent', label: 'Urgent' },
 ];
 
 const statusLabel = (status: Status): string =>
@@ -184,6 +215,7 @@ const tagFilter = ref<string>(
     props.filters.tag_id != null ? String(props.filters.tag_id) : 'all',
 );
 const search = ref(props.filters.search ?? '');
+const perPage = ref<number>(Number(props.filters.per_page ?? 10));
 
 const hasActiveFilters = computed(
     () =>
@@ -217,6 +249,10 @@ function applyFilters(): void {
         params.search = search.value.trim();
     }
 
+    if (perPage.value !== 10) {
+        params.per_page = String(perPage.value);
+    }
+
     router.get(window.location.pathname, params, {
         preserveState: true,
         preserveScroll: true,
@@ -225,7 +261,7 @@ function applyFilters(): void {
 }
 
 // Select changes apply immediately; the search box is debounced.
-watch([statusFilter, priorityFilter, projectFilter, tagFilter], applyFilters);
+watch([statusFilter, priorityFilter, projectFilter, tagFilter, perPage], applyFilters);
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch(search, () => {
@@ -242,9 +278,9 @@ function resetFilters(): void {
     projectFilter.value = 'all';
     tagFilter.value = 'all';
     search.value = '';
+    perPage.value = 10;
 }
 
-// Row selection is present but no bulk action is wired yet (out of scope).
 const selectedIds = ref<Set<number>>(new Set());
 
 const isSelected = (id: number): boolean => selectedIds.value.has(id);
@@ -288,7 +324,7 @@ function openTask(task: Task): void {
 <template>
     <Head :title="`${props.pageTitle}`"/>
 
-    <div class="space-y-6">
+    <div class="space-y-5">
         <!-- Summary cards -->
         <div v-if="props.readOnly" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <SummaryCard
@@ -304,20 +340,20 @@ function openTask(task: Task): void {
 
         <!-- Filters -->
         <div
-            class="flex flex-col gap-3 rounded-lg border border-border bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+            class="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:flex-row sm:items-center sm:justify-between shadow-xs"
         >
-            <div class="flex flex-1 flex-wrap items-center gap-3">
-                <div class="relative w-full sm:w-64">
+            <div class="flex flex-1 flex-wrap items-center gap-2.5">
+                <div class="relative w-full sm:w-72">
                     <Input
                         v-model="search"
                         type="search"
-                        placeholder="Search tasks…"
-                        class="w-full"
+                        placeholder="Search tasks, IDs, tags..."
+                        class="h-9 w-full rounded-full border-0 bg-[#F1F5F9] px-4 text-xs font-normal text-slate-800 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-indigo-500/20 shadow-none"
                     />
                 </div>
 
                 <Select v-model="statusFilter">
-                    <SelectTrigger class="w-40">
+                    <SelectTrigger class="h-9 w-36 rounded-full border-0 bg-[#F1F5F9] px-4 text-xs font-medium text-slate-600 shadow-none hover:bg-slate-200/60">
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -333,7 +369,7 @@ function openTask(task: Task): void {
                 </Select>
 
                 <Select v-model="priorityFilter">
-                    <SelectTrigger class="w-36">
+                    <SelectTrigger class="h-9 w-36 rounded-full border-0 bg-[#F1F5F9] px-4 text-xs font-medium text-slate-600 shadow-none hover:bg-slate-200/60">
                         <SelectValue placeholder="Priority" />
                     </SelectTrigger>
                     <SelectContent>
@@ -349,7 +385,7 @@ function openTask(task: Task): void {
                 </Select>
 
                 <Select v-model="projectFilter">
-                    <SelectTrigger class="w-44">
+                    <SelectTrigger class="h-9 w-40 rounded-full border-0 bg-[#F1F5F9] px-4 text-xs font-medium text-slate-600 shadow-none hover:bg-slate-200/60">
                         <SelectValue placeholder="Project" />
                     </SelectTrigger>
                     <SelectContent>
@@ -365,7 +401,7 @@ function openTask(task: Task): void {
                 </Select>
 
                 <Select v-model="tagFilter">
-                    <SelectTrigger class="w-40">
+                    <SelectTrigger class="h-9 w-36 rounded-full border-0 bg-[#F1F5F9] px-4 text-xs font-medium text-slate-600 shadow-none hover:bg-slate-200/60">
                         <SelectValue placeholder="Tag" />
                     </SelectTrigger>
                     <SelectContent>
@@ -385,17 +421,22 @@ function openTask(task: Task): void {
                     variant="ghost"
                     size="sm"
                     type="button"
+                    class="h-9 rounded-full px-3 text-xs text-slate-500 hover:bg-slate-100"
                     @click="resetFilters"
                 >
                     Clear
                 </Button>
+            </div>
+
+            <div class="text-xs font-medium text-slate-400 shrink-0">
+                {{ props.tasks.total ?? props.tasks.data.length }} tasks
             </div>
         </div>
 
         <!-- Empty state -->
         <div
             v-if="tasks.data.length === 0"
-            class="rounded-lg border border-dashed border-border bg-white p-8 text-center sm:p-12"
+            class="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center sm:p-12"
         >
             <template v-if="hasActiveFilters">
                 <p class="text-lg font-medium">No tasks match your filters</p>
@@ -426,43 +467,38 @@ function openTask(task: Task): void {
         <!-- Desktop table -->
         <div
             v-else
-            class="overflow-hidden rounded-lg border border-border bg-white md:block"
+            class="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-xs md:block"
         >
-            <table class="w-full text-sm">
+            <table class="w-full text-left text-xs border-collapse">
                 <thead
-                    class="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase"
+                    class="border-b border-slate-100 bg-[#FAFAFC]/80 text-[11px] font-bold tracking-wider text-[#90A1B9] uppercase"
                 >
                     <tr>
-                        <th class="w-10 px-4 py-3">
-                            <Checkbox :checked="false" disabled />
+                        <th class="w-10 px-4 py-3.5">
+                            <Checkbox :checked="false" disabled class="rounded border-slate-300" />
                         </th>
-                        <th class="px-4 py-3 text-left font-medium">ID</th>
-                        <th class="px-4 py-3 text-left font-medium">Task</th>
-                        <th class="px-4 py-3 text-left font-medium">Status</th>
-                        <th class="px-4 py-3 text-left font-medium">
-                            Priority
-                        </th>
-                        <th class="px-4 py-3 text-left font-medium">
-                            Assignee
-                        </th>
-                        <th class="px-4 py-3 text-left font-medium">
-                            Due Date
-                        </th>
-                        <th v-if="!readOnly" class="w-24 px-4 py-3 text-right font-medium">
-                            Actions
+                        <th class="px-4 py-3.5 font-bold">ID</th>
+                        <th class="px-4 py-3.5 font-bold">TASK</th>
+                        <th class="px-4 py-3.5 font-bold">STATUS</th>
+                        <th class="px-4 py-3.5 font-bold">PRIORITY</th>
+                        <th class="px-4 py-3.5 font-bold">ASSIGNEE</th>
+                        <th class="px-4 py-3.5 font-bold">DUE DATE</th>
+                        <th v-if="!readOnly" class="w-20 px-4 py-3.5 text-right font-bold">
+                            ACTIONS
                         </th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-border">
+                <tbody class="divide-y divide-slate-100/80">
                     <tr
                         v-for="task in tasks.data"
                         :key="task.id"
-                        class="transition-colors hover:bg-muted/40 cursor-pointer"
+                        class="transition-colors hover:bg-slate-50/60 cursor-pointer"
                         @click="openTask(task)"
                     >
-                        <td class="px-4 py-3" @click.stop>
+                        <td class="px-4 py-3.5" @click.stop>
                             <Checkbox
                                 :checked="isSelected(task.id)"
+                                class="rounded border-slate-300"
                                 @update:model-value="
                                     (value: boolean | 'indeterminate') =>
                                         toggleSelected(task.id, value === true)
@@ -470,67 +506,78 @@ function openTask(task: Task): void {
                             />
                         </td>
                         <td
-                            class="px-4 py-3 text-[#90A1B9] tabular-nums"
+                            class="px-4 py-3.5 text-[#90A1B9] font-medium tabular-nums"
                         >
                             TF-{{ String(task.id).padStart(3, '0') }}
                         </td>
-                        <td class="px-4 py-3">
-                            <div class="font-medium text-foreground">
+                        <td class="px-4 py-3.5">
+                            <div class="font-semibold text-slate-900 text-sm">
                                 {{ task.title }}
                             </div>
                             <div
                                 class="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"
                             >
-                                <span
-                                    v-if="task.project"
-                                    :class="taskProjectConfig.item.badge"
-                                    :style="{ backgroundColor: task.project.color + '20', color: task.project.color, borderColor: task.project.color + '40' }"
-                                >
-                                    {{ task.project.name }}
-                                </span>
+                               <span
+                                v-if="task.project"
+                                :class="taskProjectConfig.item.badge"
+                                :style="{ backgroundColor: task.project.color + '20', color: task.project.color, borderColor: task.project.color + '40' }"
+                            >
+                                {{ task.project.name }}
+                            </span>
                                 <span
                                     v-for="tag in task.tags"
                                     :key="tag.id"
-                                    class="rounded-full bg-muted px-2 py-0.5 text-muted-foreground"
+                                    class="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-normal text-slate-500"
                                 >
                                     {{ tag.name }}
                                 </span>
+                                <span class="inline-flex items-center gap-1 text-[11px] text-slate-400">
+                                    <MessageSquare class="size-3 text-slate-400" />
+                                    {{ task.comments_count ?? 0 }}
+                                </span>
+                                <span class="inline-flex items-center gap-1 text-[11px] text-slate-400">
+                                    <Paperclip class="size-3 text-slate-400" />
+                                    {{ task.attachments_count ?? 0 }}
+                                </span>
                             </div>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3.5">
                             <span
-                                class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border"
                                 :class="taskStatusConfig[task.status as keyof typeof taskStatusConfig]?.badge"
                             >
                                 <component :is="taskStatusConfig[task.status as keyof typeof taskStatusConfig]?.icon" class="size-3" />
                                 {{ statusLabel(task.status) }}
                             </span>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3.5">
                             <span
-                                class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                                class="inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium border"
                                 :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.badge"
                             >
                                 <span :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.dotSmall" />
                                 {{ taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.label }}
                             </span>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3.5">
                             <div
                                 v-if="task.assignee"
                                 class="flex items-center gap-2"
                             >
                                 <Avatar class="size-7">
-                                    <AvatarFallback class="text-xs">
+                                    <AvatarFallback
+                                        class="text-[11px] font-bold"
+                                        :class="getAvatarBg(task.assignee.name)"
+                                    >
                                         {{ getInitials(task.assignee.name) }}
                                     </AvatarFallback>
                                 </Avatar>
-                                <span class="truncate">{{ task.assignee.name }}</span>
+                                <span class="truncate text-xs font-medium text-slate-700">{{ task.assignee.name }}</span>
                             </div>
-                            <span v-else class="text-muted-foreground">—</span>
+                            <span v-else class="text-slate-400">—</span>
                         </td>
                         <td
-                            class="px-4 py-3"
+                            class="px-4 py-3.5 text-xs"
                             :class="
                                 isOverdue(task)
                                     ? 'font-medium text-red-600'
@@ -538,34 +585,28 @@ function openTask(task: Task): void {
                             "
                         >
                             <span v-if="task.due_date" class="inline-flex items-center gap-1.5">
-                                <Calendar class="size-3.5" />
+                                <Calendar class="size-3.5 text-[#90A1B9]" />
                                 {{ formatDate(task.due_date) }}
                             </span>
                             <span v-else>—</span>
                         </td>
-                        <td v-if="!readOnly" class="px-4 py-3" @click.stop>
+                        <td v-if="!readOnly" class="px-4 py-3.5" @click.stop>
                             <div class="flex items-center justify-end gap-1">
                                 <button
                                     type="button"
-                                    class="inline-flex size-5 items-center justify-center rounded-md transition-colors hover:bg-blue-50"
+                                    class="inline-flex size-7 items-center justify-center rounded-md text-[#0075FF] transition-colors hover:bg-blue-50"
                                     :data-test="`edit-task-${task.id}-button`"
                                     @click="openEdit(task)"
                                 >
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M21.4549 5.416C21.5499 5.5602 21.5922 5.73278 21.5747 5.90458C21.5573 6.07639 21.481 6.23689 21.3589 6.359L12.1659 15.551C12.0718 15.645 11.9545 15.7123 11.8259 15.746L7.99689 16.746C7.87032 16.779 7.73732 16.7783 7.61109 16.7441C7.48485 16.7098 7.36978 16.6431 7.27729 16.5506C7.18479 16.4581 7.1181 16.343 7.08382 16.2168C7.04955 16.0906 7.04888 15.9576 7.08189 15.831L8.08189 12.003C8.1118 11.8884 8.16679 11.7818 8.24289 11.691L17.4699 2.47C17.6105 2.32955 17.8011 2.25066 17.9999 2.25066C18.1986 2.25066 18.3893 2.32955 18.5299 2.47L21.3589 5.298C21.3938 5.33483 21.4259 5.37428 21.4549 5.416ZM19.7679 5.828L17.9999 4.061L9.48189 12.579L8.85689 14.972L11.2499 14.347L19.7679 5.828Z" fill="#0075FF"/>
-                                        <path d="M19.641 17.16C19.9143 14.824 20.0016 12.4699 19.902 10.12C19.8997 10.0646 19.9088 10.0094 19.929 9.95771C19.9491 9.90606 19.9798 9.85917 20.019 9.82L21.003 8.836C21.0299 8.80896 21.064 8.79026 21.1013 8.78215C21.1385 8.77403 21.1774 8.77685 21.2131 8.79026C21.2488 8.80368 21.2798 8.82711 21.3025 8.85776C21.3252 8.8884 21.3386 8.92494 21.341 8.963C21.5257 11.7542 21.4554 14.5565 21.131 17.335C20.895 19.357 19.271 20.942 17.258 21.167C13.7633 21.5538 10.2367 21.5538 6.74201 21.167C4.73001 20.942 3.10501 19.357 2.86901 17.335C2.45512 13.7904 2.45512 10.2096 2.86901 6.665C3.10501 4.643 4.72901 3.058 6.74201 2.833C9.39446 2.54005 12.0667 2.4688 14.731 2.62C14.7691 2.62274 14.8057 2.63635 14.8363 2.65921C14.867 2.68208 14.8904 2.71325 14.9039 2.74902C14.9173 2.7848 14.9203 2.82368 14.9123 2.86108C14.9044 2.89847 14.8859 2.9328 14.859 2.96L13.866 3.952C13.8272 3.99085 13.7808 4.02128 13.7297 4.04141C13.6786 4.06154 13.6239 4.07093 13.569 4.069C11.3458 3.99285 9.11993 4.07807 6.90901 4.324C6.26295 4.39551 5.65986 4.68272 5.19717 5.13925C4.73447 5.59578 4.43919 6.19496 4.35901 6.84C3.95787 10.2683 3.95787 13.7317 4.35901 17.16C4.43919 17.805 4.73447 18.4042 5.19717 18.8607C5.65986 19.3173 6.26295 19.6045 6.90901 19.676C10.264 20.051 13.736 20.051 17.092 19.676C17.7381 19.6045 18.3412 19.3173 18.8039 18.8607C19.2666 18.4042 19.5608 17.805 19.641 17.16Z" fill="#0075FF"/>
-                                    </svg>
-
+                                    <SquarePen class="size-4" />
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex size-5 items-center justify-center rounded-md transition-colors hover:bg-red-50"
+                                    class="inline-flex size-7 items-center justify-center rounded-md text-[#E40000] transition-colors hover:bg-red-50"
                                     :data-test="`delete-task-${task.id}-button`"
                                     @click="pendingDelete = task"
                                 >
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M10.125 4.875V5.25H13.875V4.875C13.875 4.37772 13.6775 3.90081 13.3258 3.54917C12.9742 3.19754 12.4973 3 12 3C11.5027 3 11.0258 3.19754 10.6742 3.54917C10.3225 3.90081 10.125 4.37772 10.125 4.875ZM8.625 5.25V4.875C8.625 3.97989 8.98058 3.12145 9.61351 2.48851C10.2464 1.85558 11.1049 1.5 12 1.5C12.8951 1.5 13.7535 1.85558 14.3865 2.48851C15.0194 3.12145 15.375 3.97989 15.375 4.875V5.25H21C21.1989 5.25 21.3897 5.32902 21.5303 5.46967C21.671 5.61032 21.75 5.80109 21.75 6C21.75 6.19891 21.671 6.38968 21.5303 6.53033C21.3897 6.67098 21.1989 6.75 21 6.75H19.869L18.45 19.176C18.3454 20.0911 17.9076 20.9358 17.2201 21.5488C16.5326 22.1618 15.6436 22.5004 14.7225 22.5H9.2775C8.3564 22.5004 7.46735 22.1618 6.77989 21.5488C6.09243 20.9358 5.65464 20.0911 5.55 19.176L4.131 6.75H3C2.80109 6.75 2.61032 6.67098 2.46967 6.53033C2.32902 6.38968 2.25 6.19891 2.25 6C2.25 5.80109 2.32902 5.61032 2.46967 5.46967C2.61032 5.32902 2.80109 5.25 3 5.25H8.625ZM7.041 19.005C7.10362 19.5539 7.36602 20.0606 7.77819 20.4286C8.19037 20.7965 8.7235 20.9999 9.276 21H14.7233C15.2757 20.9999 15.8089 20.7965 16.2211 20.4286C16.6332 20.0606 16.8956 19.5539 16.9583 19.005L18.36 6.75H5.64075L7.041 19.005ZM9.75 9.375C9.94891 9.375 10.1397 9.45402 10.2803 9.59467C10.421 9.73532 10.5 9.92609 10.5 10.125V17.625C10.5 17.8239 10.421 18.0147 10.2803 18.1553C10.1397 18.296 9.94891 18.375 9.75 18.375C9.55109 18.375 9.36032 18.296 9.21967 18.1553C9.07902 18.0147 9 17.8239 9 17.625V10.125C9 9.92609 9.07902 9.73532 9.21967 9.59467C9.36032 9.45402 9.55109 9.375 9.75 9.375ZM15 10.125C15 9.92609 14.921 9.73532 14.7803 9.59467C14.6397 9.45402 14.4489 9.375 14.25 9.375C14.0511 9.375 13.8603 9.45402 13.7197 9.59467C13.579 9.73532 13.5 9.92609 13.5 10.125V17.625C13.5 17.8239 13.579 18.0147 13.7197 18.1553C13.8603 18.296 14.0511 18.375 14.25 18.375C14.4489 18.375 14.6397 18.296 14.7803 18.1553C14.921 18.0147 15 17.8239 15 17.625V10.125Z" fill="#E40000"/>
-                                    </svg>
+                                    <Trash2 class="size-4" />
                                 </button>
                             </div>
                         </td>
@@ -579,17 +620,16 @@ function openTask(task: Task): void {
             <div
                 v-for="task in tasks.data"
                 :key="task.id"
-                class="rounded-lg border border-border bg-white p-4"
+                class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs"
             >
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <p class="font-medium">{{ task.title }}</p>
+                        <p class="font-semibold text-slate-900 text-sm">{{ task.title }}</p>
                         <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                            <span class="text-xs text-muted-foreground">TF-{{ String(task.id).padStart(3, '0') }}</span>
+                            <span class="text-xs text-[#90A1B9] font-medium">TF-{{ String(task.id).padStart(3, '0') }}</span>
                             <span
                                 v-if="task.project"
-                                :class="taskProjectConfig.item.badge"
-                                :style="{ backgroundColor: task.project.color + '20', color: task.project.color, borderColor: task.project.color + '40' }"
+                                class="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-normal text-slate-500"
                             >
                                 {{ task.project.name }}
                             </span>
@@ -598,25 +638,23 @@ function openTask(task: Task): void {
                     <button
                         v-if="!readOnly"
                         type="button"
-                        class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                        class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                         @click="pendingDelete = task"
                     >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M10.125 4.875V5.25H13.875V4.875C13.875 4.37772 13.6775 3.90081 13.3258 3.54917C12.9742 3.19754 12.4973 3 12 3C11.5027 3 11.0258 3.19754 10.6742 3.54917C10.3225 3.90081 10.125 4.37772 10.125 4.875ZM8.625 5.25V4.875C8.625 3.97989 8.98058 3.12145 9.61351 2.48851C10.2464 1.85558 11.1049 1.5 12 1.5C12.8951 1.5 13.7535 1.85558 14.3865 2.48851C15.0194 3.12145 15.375 3.97989 15.375 4.875V5.25H21C21.1989 5.25 21.3897 5.32902 21.5303 5.46967C21.671 5.61032 21.75 5.80109 21.75 6C21.75 6.19891 21.671 6.38968 21.5303 6.53033C21.3897 6.67098 21.1989 6.75 21 6.75H19.869L18.45 19.176C18.3454 20.0911 17.9076 20.9358 17.2201 21.5488C16.5326 22.1618 15.6436 22.5004 14.7225 22.5H9.2775C8.3564 22.5004 7.46735 22.1618 6.77989 21.5488C6.09243 20.9358 5.65464 20.0911 5.55 19.176L4.131 6.75H3C2.80109 6.75 2.61032 6.67098 2.46967 6.53033C2.32902 6.38968 2.25 6.19891 2.25 6C2.25 5.80109 2.32902 5.61032 2.46967 5.46967C2.61032 5.32902 2.80109 5.25 3 5.25H8.625ZM7.041 19.005C7.10362 19.5539 7.36602 20.0606 7.77819 20.4286C8.19037 20.7965 8.7235 20.9999 9.276 21H14.7233C15.2757 20.9999 15.8089 20.7965 16.2211 20.4286C16.6332 20.0606 16.8956 19.5539 16.9583 19.005L18.36 6.75H5.64075L7.041 19.005ZM9.75 9.375C9.94891 9.375 10.1397 9.45402 10.2803 9.59467C10.421 9.73532 10.5 9.92609 10.5 10.125V17.625C10.5 17.8239 10.421 18.0147 10.2803 18.1553C10.1397 18.296 9.94891 18.375 9.75 18.375C9.55109 18.375 9.36032 18.296 9.21967 18.1553C9.07902 18.0147 9 17.8239 9 17.625V10.125C9 9.92609 9.07902 9.73532 9.21967 9.59467C9.36032 9.45402 9.55109 9.375 9.75 9.375ZM15 10.125C15 9.92609 14.921 9.73532 14.7803 9.59467C14.6397 9.45402 14.4489 9.375 14.25 9.375C14.0511 9.375 13.8603 9.45402 13.7197 9.59467C13.579 9.73532 13.5 9.92609 13.5 10.125V17.625C13.5 17.8239 13.579 18.0147 13.7197 18.1553C13.8603 18.296 14.0511 18.375 14.25 18.375C14.4489 18.375 14.6397 18.296 14.7803 18.1553C14.921 18.0147 15 17.8239 15 17.625V10.125Z" fill="#E40000"/>
-                                    </svg>
+                        <Trash2 class="size-4" />
                     </button>
                 </div>
 
                 <div class="mt-3 flex flex-wrap items-center gap-2">
                     <span
-                        class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border"
                         :class="taskStatusConfig[task.status as keyof typeof taskStatusConfig]?.badge"
                     >
                         <component :is="taskStatusConfig[task.status as keyof typeof taskStatusConfig]?.icon" class="size-3" />
                         {{ statusLabel(task.status) }}
                     </span>
                     <span
-                        class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                        class="inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium border"
                         :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.badge"
                     >
                         <span :class="(taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.dotSmall ?? '') + ' size-1.5 shrink-0 rounded-full'" />
@@ -628,7 +666,7 @@ function openTask(task: Task): void {
                         :class="
                             isOverdue(task)
                                 ? 'font-medium text-red-600'
-                                : 'text-muted-foreground'
+                                : 'text-slate-500'
                         "
                     >
                         {{ formatDate(task.due_date) }}
@@ -636,7 +674,7 @@ function openTask(task: Task): void {
                     <span
                         v-for="tag in task.tags"
                         :key="tag.id"
-                        class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                        class="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-500"
                     >
                         {{ tag.name }}
                     </span>
@@ -645,31 +683,54 @@ function openTask(task: Task): void {
         </div>
 
         <!-- Pagination -->
-        <nav
-            v-if="tasks.links?.length"
-            class="flex flex-wrap items-center gap-1"
+        <div
+            v-if="tasks.links?.length || tasks.data.length"
+            class="flex flex-wrap items-center justify-between gap-4 px-1 py-2 text-xs"
         >
-            <template v-for="(link, index) in tasks.links" :key="index">
-                <span
-                    v-if="!link.url"
-                    class="px-3 py-1 text-sm text-muted-foreground"
-                    v-html="link.label"
-                />
-                <Link
-                    v-else
-                    :href="link.url"
-                    preserve-scroll
-                    class="rounded-md px-3 py-1 text-sm transition-colors"
-                    :class="
-                        link.active
-                            ? 'bg-primary font-medium text-primary-foreground'
-                            : 'hover:bg-muted'
-                    "
-                >
-                    <span v-html="link.label" />
-                </Link>
-            </template>
-        </nav>
+            <div class="text-slate-400 font-medium">
+                Showing {{ tasks.data.length }} of {{ props.tasks.total ?? tasks.data.length }} tasks
+            </div>
+
+            <Select v-model="perPage">
+                <SelectTrigger class="h-8 w-16 rounded-full border-0 bg-[#F1F5F9] px-2.5 text-xs font-medium text-slate-600 shadow-none">
+                    <SelectValue placeholder="10" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="15">15</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+            </Select>
+
+            <nav
+                v-if="tasks.links?.length"
+                class="flex items-center gap-1.5"
+            >
+                <template v-for="(link, index) in tasks.links" :key="index">
+                    <span
+                        v-if="!link.url"
+                        class="px-2 py-1 text-slate-300"
+                        v-html="link.label"
+                    />
+                    <Link
+                        v-else
+                        :href="link.url"
+                        preserve-scroll
+                        class="transition-all"
+                        :class="
+                            link.active
+                                ? 'flex size-7 items-center justify-center rounded-full bg-[#4F46E5] font-semibold text-white shadow-xs'
+                                : 'flex h-7 items-center justify-center rounded-md px-2.5 font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        "
+                    >
+                        <span v-html="link.label" />
+                    </Link>
+                </template>
+            </nav>
+        </div>
 
         <DeleteTaskDialog
             :open="pendingDelete !== null"
@@ -688,3 +749,4 @@ function openTask(task: Task): void {
         />
     </div>
 </template>
+plate>
