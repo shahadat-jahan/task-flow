@@ -8,7 +8,7 @@ import {
     User,
 } from '@lucide/vue';
 import { computed } from 'vue';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import AppLogo from '@/components/AppLogo.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
@@ -29,6 +29,7 @@ const emit = defineEmits<{
 }>();
 
 const page = usePage();
+const appName = page.props.name;
 const user = computed(() => page.props.auth.user);
 const projects = computed(() => page.props.sidebarProjects ?? []);
 const myTasksCount = computed<number>(() => (page.props.sidebarMyTasksCount as number) ?? 0);
@@ -48,11 +49,11 @@ const mainNavItems: NavItem[] = [
     <div class="flex h-full w-full flex-col bg-white">
         <Link
             :href="dashboard()"
-            class="flex h-16 items-center gap-2 border-b border-border px-6"
+            class="flex h-16 items-center gap-2.5 border-b border-border px-6"
             @click="emit('navigate')"
         >
-            <AppLogoIcon class="size-7 fill-current text-indigo-600" />
-            <span class="text-lg font-semibold tracking-tight">TaskFlow</span>
+            <AppLogo class="size-9 shrink-0" />
+            <span class="text-lg font-bold tracking-tight text-slate-900">{{ appName }}</span>
         </Link>
 
         <div class="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">

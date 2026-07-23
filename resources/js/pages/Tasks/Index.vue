@@ -467,7 +467,7 @@ function openTask(task: Task): void {
         <!-- Desktop table -->
         <div
             v-else
-            class="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-xs md:block"
+            class="hidden overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-xs md:block"
         >
             <table class="w-full text-left text-xs border-collapse">
                 <thead

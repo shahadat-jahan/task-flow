@@ -42,7 +42,7 @@ const badgeClass = computed(() => {
 </script>
 
 <template>
-  <Card class="w-full max-w-[396px] h-[170px] rounded-[16px] border border-[#E2E8F0] bg-white shadow-none">
+  <Card class="w-full h-[170px] rounded-[16px] border border-[#E2E8F0] bg-white shadow-none">
     <CardContent class="flex h-full flex-col justify-between p-5">
       <!-- Top Row: Icon + Trend Badge -->
       <div class="flex items-center justify-between">
