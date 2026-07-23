@@ -472,7 +472,7 @@ function openTask(task: Task): void {
                         <td
                             class="px-4 py-3 text-[#90A1B9] tabular-nums"
                         >
-                            TF-{{ task.id }}
+                            TF-{{ String(task.id).padStart(3, '0') }}
                         </td>
                         <td class="px-4 py-3">
                             <div class="font-medium text-foreground">
@@ -585,7 +585,7 @@ function openTask(task: Task): void {
                     <div class="min-w-0">
                         <p class="font-medium">{{ task.title }}</p>
                         <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                            <span class="text-xs text-muted-foreground">#{{ task.id }}</span>
+                            <span class="text-xs text-muted-foreground">TF-{{ String(task.id).padStart(3, '0') }}</span>
                             <span
                                 v-if="task.project"
                                 :class="taskProjectConfig.item.badge"

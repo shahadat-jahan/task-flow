@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useForm, router } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -21,8 +20,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useTaskModal } from '@/composables/useTaskModal';
 import type { TaskFormTask } from '@/composables/useTaskModal';
 import { destroy, store, update } from '@/routes/my-tasks';
+
+// Initialize composable to get dynamic modal title
+const { modalTitle, modalSubTitle } = useTaskModal();
 
 const props = defineProps<{
     open: boolean;
@@ -175,14 +178,10 @@ function deleteTask(): void {
 
             <DialogHeader class="flex h-[75px] flex-col justify-center border-b border-[#F1F5F9]">
                 <DialogTitle class="text-base font-semibold text-[#0F172B]">
-                    {{ task ? 'Edit Task' : 'Create New Task' }}
+                    {{ modalTitle }}
                 </DialogTitle>
                 <DialogDescription class="text-xs font-normal text-[#62748E]">
-                    {{
-                        task
-                            ? 'Update the details of this task.'
-                            : 'Add a new task to your workflow.'
-                    }}
+                    {{ modalSubTitle }}
                 </DialogDescription>
             </DialogHeader>
 
