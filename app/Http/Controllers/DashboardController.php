@@ -23,7 +23,7 @@ class DashboardController extends Controller
     public function index(Request $request): Response
     {
         $filters = $request->only(['status', 'priority', 'project_id', 'tag_id', 'search', 'sort', 'direction']);
-        $user =  $request->user()?->name;
+        $user = $request->user()?->name;
 
         return Inertia::render('Dashboard', [
             'pageTitle' => 'Dashboard',

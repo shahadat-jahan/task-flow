@@ -33,7 +33,7 @@ class UpdateTaskRequest extends FormRequest
             'description' => ['sometimes', 'nullable', 'string'],
             'status' => ['sometimes', 'required', Rule::in($this->enumValues(TaskStatus::class))],
             'priority' => ['sometimes', 'required', Rule::in($this->enumValues(TaskPriority::class))],
-            'due_date' => ['sometimes', 'nullable', 'date'],
+            'due_date' => ['sometimes', 'nullable', 'date', 'after_or_equal:today'],
             'assignee_id' => ['sometimes', 'nullable', 'exists:users,id'],
             'project_id' => ['sometimes', 'nullable', 'exists:projects,id'],
             'tags' => ['sometimes', 'nullable', 'array'],

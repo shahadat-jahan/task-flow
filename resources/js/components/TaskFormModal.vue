@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm, router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { X } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -66,10 +67,12 @@ const form = useForm({
 });
 
 const confirmingDelete = ref(false);
-const tagsInput = ref('');
 const availableTags = ref<{ id: number; name: string; color: string }[]>(
     props.tags,
 );
+const showTagSuggestions = ref(false);
+const tagInputRef = ref<HTMLInputElement | null>(null);
+const tagsInput = ref('');
 
 function resetForm(): void {
     form.reset();
@@ -110,6 +113,52 @@ watch(
     },
     { immediate: true },
 );
+
+const filteredTags = computed(() => {
+    // Get the last incomplete tag (after the last comma)
+    const parts = tagsInput.value.split(',');
+    const currentPart = parts[parts.length - 1].trim().toLowerCase();
+
+    if (!currentPart) {
+        return [];
+    }
+
+    return availableTags.value.filter((tag) =>
+        tag.name.toLowerCase().includes(currentPart)
+    );
+});
+
+function selectTag(tagName: string): void {
+    const trimmedTag = tagName.trim();
+
+    if (!trimmedTag) {
+        return;
+    }
+
+    // Replace the current incomplete tag with the selected one
+    const parts = tagsInput.value.split(',');
+    parts[parts.length - 1] = trimmedTag;
+    tagsInput.value = parts.join(', ') + ', ';
+
+    showTagSuggestions.value = false;
+    tagInputRef.value?.focus();
+}
+
+function handleInputBlur(): void {
+    // Delay hiding suggestions to allow click events to fire
+    setTimeout(() => {
+        showTagSuggestions.value = false;
+    }, 200);
+}
+
+function handleInputFocus(): void {
+    const parts = tagsInput.value.split(',');
+    const currentPart = parts[parts.length - 1].trim();
+
+    if (currentPart) {
+        showTagSuggestions.value = true;
+    }
+}
 
 function submit(): void {
     // 'none' is the Select sentinel for "unassigned"; the backend expects null/empty.
@@ -189,7 +238,10 @@ function deleteTask(): void {
             <div class="grid gap-5 pb-5">
                 <!-- Title -->
                 <div class="grid gap-2">
-                    <Label for="title" class="text-sm font-medium text-[#314158]">Task Title</Label>
+                    <Label for="title" class="text-sm font-medium text-[#314158]">
+                        Task Title
+                        <span class="text-red-500">*</span>
+                    </Label>
                     <Input id="title" v-model="form.title" class="h-[42px] w-full rounded-[16px] border border-[#E2E8F0] px-[14px] text-sm text-[#90A1B9] placeholder:text-[#90A1B9]" placeholder="e.g. Redesign the onboarding flow" />
                     <InputError :message="form.errors.title" />
                 </div>
@@ -210,7 +262,10 @@ function deleteTask(): void {
                 <!-- Status + Priority -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="grid gap-2">
-                        <Label for="status" class="text-sm font-medium text-[#314158]">Status</Label>
+                        <Label for="status" class="text-sm font-medium text-[#314158]">
+                            Status
+                            <span class="text-red-500">*</span>
+                        </Label>
                         <Select v-model="form.status">
                             <SelectTrigger id="status" class="h-[42px] w-full rounded-[16px] border border-[#E2E8F0] bg-white px-[14px]">
                                 <SelectValue placeholder="Todo" />
@@ -229,7 +284,10 @@ function deleteTask(): void {
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="priority" class="text-sm font-medium text-[#314158]">Priority</Label>
+                        <Label for="priority" class="text-sm font-medium text-[#314158]">
+                            Priority
+                            <span class="text-red-500">*</span>
+                        </Label>
                         <Select v-model="form.priority">
                             <SelectTrigger id="priority" class="h-[42px] w-full rounded-[16px] border border-[#E2E8F0] bg-white px-[14px]">
                                 <SelectValue placeholder="Medium" />
@@ -306,12 +364,39 @@ function deleteTask(): void {
 
                     <div class="grid gap-2">
                         <Label for="tags" class="text-sm font-medium text-[#314158]">Tags</Label>
-                        <Input
-                            id="tags"
-                            v-model="tagsInput"
-                            placeholder="Design, Frontend, Bug..."
-                            class="h-[42px] rounded-[16px] border border-[#E2E8F0] px-[14px] text-sm text-[#90A1B9] placeholder:text-[#90A1B9]"
-                        />
+                        <div class="relative">
+                            <Input
+                                id="tags"
+                                ref="tagInputRef"
+                                v-model="tagsInput"
+                                placeholder="Design, Frontend, Bug..."
+                                class="h-[42px] rounded-[16px] border border-[#E2E8F0] px-[14px] text-sm text-[#90A1B9] placeholder:text-[#90A1B9]"
+                                @input="handleInputFocus"
+                                @focus="handleInputFocus"
+                                @blur="handleInputBlur"
+                                @keydown.tab="showTagSuggestions = false"
+                            />
+
+                            <!-- Tag Suggestions Dropdown -->
+                            <div
+                                v-if="showTagSuggestions && filteredTags.length > 0"
+                                class="absolute bottom-full mb-1 z-50 max-h-60 w-full overflow-y-auto rounded-[12px] border border-[#E2E8F0] bg-white shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-1px_rgba(0,0,0,0.06)]"
+                            >
+                                <button
+                                    v-for="tag in filteredTags"
+                                    :key="tag.id"
+                                    type="button"
+                                    class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-[#F8FAFC] transition-colors first:rounded-t-[12px] last:rounded-b-[12px]"
+                                    @mousedown.prevent="selectTag(tag.name)"
+                                >
+                                    <span
+                                        class="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                                        :style="{ backgroundColor: tag.color }"
+                                    ></span>
+                                    <span class="text-[#314158] truncate">{{ tag.name }}</span>
+                                </button>
+                            </div>
+                        </div>
                         <InputError :message="form.errors.tags" />
                     </div>
                 </div>

@@ -30,7 +30,7 @@ class StoreTaskRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'status' => ['required', Rule::in($this->enumValues(TaskStatus::class))],
             'priority' => ['required', Rule::in($this->enumValues(TaskPriority::class))],
-            'due_date' => ['nullable', 'date'],
+            'due_date' => ['nullable', 'date', 'after_or_equal:today'],
             'assignee_id' => ['nullable', 'exists:users,id'],
             'project_id' => ['nullable', 'exists:projects,id'],
             'tags' => ['nullable', 'array'],

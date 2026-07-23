@@ -108,7 +108,7 @@ test('task cannot be created with invalid data', function () {
         ->post(route('my-tasks.store'), [
             'title' => '',
             'status' => 'not-a-status',
-            'priority' => 'urgent',
+            'priority' => 'super-urgent',
             'assignee_id' => 999999,
             'tags' => [999999],
         ]);

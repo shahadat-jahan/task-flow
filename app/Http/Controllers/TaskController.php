@@ -25,7 +25,7 @@ class TaskController extends Controller
     public function myTasks(Request $request): Response
     {
         $filters = $request->only(['status', 'priority', 'project_id', 'tag_id', 'search', 'sort', 'direction']);
-        $user =  $request->user()?->name;
+        $user = $request->user()?->name;
 
         return Inertia::render('Tasks/Index', [
             'pageTitle' => 'My Tasks',
@@ -68,7 +68,7 @@ class TaskController extends Controller
 
         return Inertia::render('Tasks/Show', [
             'pageTitle' => 'Task Details',
-            'subtitle' => "TF-" . str_pad($task->id, 3, '0', STR_PAD_LEFT) . " - " . $task->project->name,
+            'subtitle' => 'TF-'.str_pad($task->id, 3, '0', STR_PAD_LEFT).' - '.$task->project->name,
             'task' => $task,
             'canEdit' => $request->user()?->can('update', $task),
             ...$this->tasks->filterOptions(),
@@ -84,7 +84,7 @@ class TaskController extends Controller
 
         return Inertia::render('Tasks/Edit', [
             'pageTitle' => 'Edit Task',
-            'subtitle' => "Editing TF-" . str_pad($task->id, 3, '0', STR_PAD_LEFT),
+            'subtitle' => 'Editing TF-'.str_pad($task->id, 3, '0', STR_PAD_LEFT),
             'task' => $task,
         ]);
     }
