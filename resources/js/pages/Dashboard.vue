@@ -14,7 +14,6 @@ const props = defineProps<{
     users: any;
     summary: any;
     readOnly?: boolean;
-    breadcrumbs?: any[];
 }>();
 
 defineOptions({
@@ -23,9 +22,9 @@ defineOptions({
 </script>
 
 <template>
-    <Head :title="`${props.pageTitle}`"/>
 
     <TaskIndexView
+        :page-title="props.pageTitle"
         :tasks="props.tasks"
         :filters="props.filters"
         :projects="props.projects"

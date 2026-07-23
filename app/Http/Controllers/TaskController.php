@@ -66,11 +66,12 @@ class TaskController extends Controller
             'attachments.uploader',
         ]);
 
-
         return Inertia::render('Tasks/Show', [
             'pageTitle' => 'Task Details',
             'subtitle' => "TF-{$task->id} . {$task->project->name} ",
             'task' => $task,
+            'canEdit' => $request->user()?->can('update', $task),
+            ...$this->tasks->filterOptions(),
         ]);
     }
 

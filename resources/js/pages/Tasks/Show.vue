@@ -4,14 +4,14 @@ import { MessageSquare, Paperclip, Trash2, PencilLine, Calendar } from '@lucide/
 import { computed, ref, watch } from 'vue';
 
 import InputError from '@/components/InputError.vue';
+import TaskFormModal from '@/components/TaskFormModal.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useInitials } from '@/composables/useInitials';
-import AppLayout from '@/layouts/AppLayout.vue';
+import { useTaskModal } from '@/composables/useTaskModal';
 import { priorityBadgeClass, statusBadgeClass } from '@/lib/taskBadges';
 import { destroy as destroyAttachment } from '@/routes/attachments';
 import { destroy as destroyComment } from '@/routes/comments';
-import { edit as editTask } from '@/routes/my-tasks';
 import { store as storeAttachment } from '@/routes/my-tasks/attachments';
 import { store as storeComment } from '@/routes/my-tasks/comments';
 import { update as updateStatus } from '@/routes/my-tasks/status';
@@ -66,18 +66,34 @@ interface TaskDetail {
     attachments: AttachmentSummary[] | null;
 }
 
-defineOptions({
-    layout: AppLayout,
-});
 
 const props = defineProps<{
     pageTitle: string;
     task: TaskDetail;
+    canEdit: boolean;
+    users: { id: number; name: string }[];
+    projects: { id: number; name: string; color: string }[];
+    tags: { id: number; name: string; color: string }[];
 }>();
 
 const { getInitials } = useInitials();
+const { isOpen, editingTask, openEdit, close } = useTaskModal();
 const page = usePage();
 const currentUser = computed(() => page.props.auth.user as UserSummary | null);
+
+function navigateToEdit(): void {
+    openEdit({
+        id: props.task.id,
+        title: props.task.title,
+        description: props.task.description,
+        status: props.task.status,
+        priority: props.task.priority,
+        due_date: props.task.due_date,
+        assignee_id: props.task.assignee?.id ?? null,
+        project_id: props.task.project?.id ?? null,
+        tags: props.task.tags,
+    });
+}
 
 const controlClass =
     'border-input bg-transparent file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex w-full min-w-0 rounded-md border px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
@@ -220,9 +236,6 @@ function deleteAttachment(id: number): void {
     router.delete(destroyAttachment.url(id), { preserveScroll: true });
 }
 
-function navigateToEdit(): void {
-    router.visit(editTask.url(props.task.id));
-}
 </script>
 
 <template>
@@ -252,7 +265,7 @@ function navigateToEdit(): void {
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div v-if="canEdit" class="flex items-center gap-2">
                     <Button
                         variant="outline"
                         size="sm"
@@ -473,5 +486,14 @@ function navigateToEdit(): void {
                 </Button>
             </form>
         </section>
+
+        <TaskFormModal
+            :open="isOpen"
+            :task="editingTask"
+            :users="users"
+            :projects="projects"
+            :tags="tags"
+            @close="close"
+        />
     </div>
 </template>
