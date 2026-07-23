@@ -1,37 +1,19 @@
 <script setup lang="ts">
 import { useForm, router, usePage, Head } from '@inertiajs/vue3';
-import { MessageSquare, Paperclip, Trash2, PencilLine, Calendar, RefreshCw, Eye, Circle, CheckCircle2, X } from '@lucide/vue';
+import { MessageSquare, Paperclip, Trash2, PencilLine, Calendar } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
-
 import InputError from '@/components/InputError.vue';
 import TaskFormModal from '@/components/TaskFormModal.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useInitials } from '@/composables/useInitials';
+import { taskPriorityConfig, taskStatusConfig } from '@/composables/useTaskBadges';
 import { useTaskModal } from '@/composables/useTaskModal';
-// Figma spec colors per status/priority. Kept local (instead of relying
-// solely on @/lib/taskBadges) so border + bg + text always match exactly,
-// since the shared lib may only define bg/text without a border color.
-const statusStyles: Record<string, string> = {
-    todo: 'bg-white text-slate-500 border-slate-200',
-    in_progress: 'bg-[#EFF6FF] text-[#1447E6] border-[#BEDBFF]',
-    in_review: 'bg-[#FAF5FF] text-[#9810FA] border-[#E9D4FF]',
-    done: 'bg-[#F0FDF4] text-[#00A63E] border-[#B9F8CF]',
-    cancelled: 'bg-white text-slate-400 border-slate-200',
-};
-
-const priorityStyles: Record<string, string> = {
-    low: 'bg-slate-100 text-slate-500 border-slate-200',
-    medium: 'bg-[#FFFBEB] text-[#D08700] border-[#FEE685]',
-    high: 'bg-[#FFF7ED] text-[#CA3500] border-[#FFD6A8]',
-    urgent: 'bg-[#FEF2F2] text-[#E7000B] border-[#FFC9C9]',
-};
 import { destroy as destroyAttachment } from '@/routes/attachments';
 import { destroy as destroyComment } from '@/routes/comments';
 import { store as storeAttachment } from '@/routes/my-tasks/attachments';
 import { store as storeComment } from '@/routes/my-tasks/comments';
 import { update as updateStatus } from '@/routes/my-tasks/status';
-import { log } from 'console';
 
 interface UserSummary {
     id: number;
@@ -83,7 +65,6 @@ interface TaskDetail {
     attachments: AttachmentSummary[] | null;
     created_at: string;
 }
-
 const props = defineProps<{
     pageTitle: string;
     task: TaskDetail;
@@ -145,14 +126,6 @@ const priorityOptions: { value: string; label: string }[] = [
     { value: 'urgent', label: 'Urgent' },
 ];
 
-// Icon shown inside the status badge, per Figma reference table.
-const statusIcon: Record<string, typeof RefreshCw> = {
-    todo: Circle,
-    in_progress: RefreshCw,
-    in_review: Eye,
-    done: CheckCircle2,
-    cancelled: X,
-};
 
 const statusLabel = computed(
     () =>
@@ -323,14 +296,14 @@ function deleteAttachment(id: number): void {
                 <div class="mt-4 flex flex-wrap items-center gap-2">
                     <span
                         class="inline-flex items-center gap-1.5 rounded-[10px] border px-2 py-0.5 text-xs font-medium"
-                        :class="statusStyles[task.status]"
+                        :class="taskStatusConfig[task.status as keyof typeof taskStatusConfig]?.badge"
                     >
-                        <component :is="statusIcon[task.status]" v-if="statusIcon[task.status]" class="size-3" />
+                        <component :is="taskStatusConfig[task.status as keyof typeof taskStatusConfig]?.icon" class="size-3" />
                         {{ statusLabel }}
                     </span>
                     <span
                         class="inline-flex items-center gap-1.5 rounded-[10px] border px-2 py-0.5 text-xs font-medium"
-                        :class="priorityStyles[task.priority]"
+                        :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.badge"
                     >
                         <span class="size-1.5 shrink-0 rounded-full bg-current" />
                         {{ priorityLabel }}

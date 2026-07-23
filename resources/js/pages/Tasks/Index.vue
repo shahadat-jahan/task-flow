@@ -24,12 +24,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useInitials } from '@/composables/useInitials';
+import { taskPriorityConfig, taskStatusConfig } from '@/composables/useTaskBadges';
 import { useTaskModal } from '@/composables/useTaskModal';
-import { priorityBadgeClass, statusBadgeClass } from '@/lib/taskBadges';
 import { destroy, show } from '@/routes/my-tasks';
 
 type Status = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
-type Priority = 'low' | 'medium' | 'high';
+type Priority = 'low' | 'medium' | 'high' | 'urgent';
 type TrendDirection = 'up' | 'down' | 'neutral';
 
 interface TaskTrend {
@@ -124,6 +124,7 @@ const priorityOptions: { value: Priority; label: string }[] = [
     { value: 'low', label: 'Low' },
     { value: 'medium', label: 'Medium' },
     { value: 'high', label: 'High' },
+    { value: 'urgent', label: 'Urgent'},
 ];
 
 const statusLabel = (status: Status): string =>
@@ -501,18 +502,19 @@ function openTask(task: Task): void {
                         </td>
                         <td class="px-4 py-3">
                             <span
-                                class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                :class="statusBadgeClass[task.status]"
+                                class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                                :class="taskStatusConfig[task.status as keyof typeof taskStatusConfig]?.badge"
                             >
+                                <component :is="taskStatusConfig[task.status as keyof typeof taskStatusConfig]?.icon" class="size-3" />
                                 {{ statusLabel(task.status) }}
                             </span>
                         </td>
                         <td class="px-4 py-3">
                             <span
                                 class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                :class="priorityBadgeClass[task.priority]"
+                                :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.badge"
                             >
-                                {{ task.priority }}
+                                {{ taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.label }}
                             </span>
                         </td>
                         <td class="px-4 py-3">
@@ -605,16 +607,17 @@ function openTask(task: Task): void {
 
                 <div class="mt-3 flex flex-wrap items-center gap-2">
                     <span
-                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                        :class="statusBadgeClass[task.status]"
+                        class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                        :class="taskStatusConfig[task.status as keyof typeof taskStatusConfig]?.badge"
                     >
+                        <component :is="taskStatusConfig[task.status as keyof typeof taskStatusConfig]?.icon" class="size-3" />
                         {{ statusLabel(task.status) }}
                     </span>
                     <span
                         class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                        :class="priorityBadgeClass[task.priority]"
+                        :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.badge"
                     >
-                        {{ task.priority }}
+                        {{ taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.label }}
                     </span>
                     <span
                         v-if="task.due_date"
