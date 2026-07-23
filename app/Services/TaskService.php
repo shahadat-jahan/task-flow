@@ -73,7 +73,7 @@ class TaskService
     /**
      * Delete a task.
      */
-    public function delete(Task $task): void
+    public function destroy(Task $task): void
     {
         $task->delete();
     }
@@ -127,9 +127,9 @@ class TaskService
     public function filterOptions(): array
     {
         return [
-            'projects' => Project::orderBy('name')->get(['id', 'name']),
-            'tags' => Tag::orderBy('name')->get(['id', 'name']),
-            'users' => User::orderBy('name')->get(['id', 'name']),
+            'projects' => Project::orderBy('name', 'asc')->get(['id', 'name']),
+            'tags' => Tag::orderBy('name', 'asc')->get(['id', 'name']),
+            'users' => User::orderBy('name', 'asc')->get(['id', 'name']),
         ];
     }
 

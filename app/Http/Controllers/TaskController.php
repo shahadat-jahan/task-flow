@@ -9,6 +9,7 @@ use App\Models\Task;
 use App\Services\TaskService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Enum;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,11 +26,11 @@ class TaskController extends Controller
     public function myTasks(Request $request): Response
     {
         $filters = $request->only(['status', 'priority', 'project_id', 'tag_id', 'search', 'sort', 'direction']);
-        $user = $request->user()?->name;
+        $userFirstName = Str::before($request->user()?->name ?? '', ' ');
 
         return Inertia::render('Tasks/Index', [
             'pageTitle' => 'My Tasks',
-            'subtitle' => "Good morning, {$user} — here's what's happening",
+            'subtitle' => "Good morning, {$userFirstName} — here's what's happening",
             'tasks' => $this->tasks->myTasks($request),
             'filters' => $filters,
             ...$this->tasks->filterOptions(),

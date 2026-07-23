@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 import { Bell, Menu } from '@lucide/vue';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import SidebarContent from '@/components/SidebarContent.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Toaster } from '@/components/ui/sonner';
 import { useTaskModal } from '@/composables/useTaskModal';
+
 import type { BreadcrumbItem } from '@/types';
 
 withDefaults(
@@ -24,6 +25,10 @@ withDefaults(
 const page = usePage();
 const { openCreate } = useTaskModal();
 const mobileNavOpen = ref(false);
+const search = ref('');
+watch(search, (val) => {
+  router.get(window.location.pathname, { search: val }, { preserveState: true, preserveScroll: true, replace: true });
+});
 </script>
 
 <template>
@@ -75,9 +80,10 @@ const mobileNavOpen = ref(false);
                 <div class="ml-auto flex items-center gap-3">
                     <div class="relative hidden sm:block">
                         <Input
+                            v-model="search"
                             type="search"
                             placeholder="Search tasks…"
-                            class="w-56"
+                            class="w-56 rounded-full border-0 bg-[#F1F5F9] px-4 text-xs font-normal text-slate-800 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-indigo-500/20 shadow-none"
                         />
                     </div>
 

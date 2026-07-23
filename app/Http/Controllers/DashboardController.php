@@ -7,6 +7,7 @@ use App\Services\TaskService;
 use App\Services\TaskSummaryService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Str;
 use Inertia\Response;
 
 class DashboardController extends Controller
@@ -23,11 +24,11 @@ class DashboardController extends Controller
     public function index(Request $request): Response
     {
         $filters = $request->only(['status', 'priority', 'project_id', 'tag_id', 'search', 'sort', 'direction']);
-        $user = $request->user()?->name;
+        $userFirstName = Str::before($request->user()?->name ?? '', ' ');
 
         return Inertia::render('Dashboard', [
             'pageTitle' => 'Dashboard',
-            'subtitle' => "Good morning, {$user} — here's what's happening",
+            'subtitle' => "Good morning, {$userFirstName} — here's what's happening",
             'readOnly' => true,
             'tasks' => $this->tasks->dashboardTasks($request),
             'filters' => $filters,
