@@ -27,7 +27,8 @@ const { openCreate } = useTaskModal();
 const mobileNavOpen = ref(false);
 const search = ref('');
 watch(search, (val) => {
-  router.get(window.location.pathname, { search: val }, { preserveState: true, preserveScroll: true, replace: true });
+  // Always redirect to the dashboard page when searching globally
+  router.get('/dashboard', { search: val }, { preserveState: true, preserveScroll: true, replace: true });
 });
 </script>
 

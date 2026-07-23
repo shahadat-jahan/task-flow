@@ -175,8 +175,8 @@ class TaskService
      */
     private function perPage(Request $request): int
     {
-        $value = (int) $request->query('per_page', 15);
+        $value = (int) $request->query('per_page', 10);
 
-        return in_array($value, [5, 10, 15, 25, 50, 100], true) ? $value : 15;
+        return in_array($value, [5, 10, 15, 25, 50, 100], true) ? $value : 10;
     }
 }
