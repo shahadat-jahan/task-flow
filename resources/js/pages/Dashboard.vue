@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import AppLayout from '@/layouts/AppLayout.vue';
 import TaskIndexView from '@/pages/Tasks/Index.vue';
-import { dashboard } from '@/routes';
 
 // Props passed from the DashboardController via Inertia
 const props = defineProps<{
+    pageTitle:string;
+    subtitle: string;
     tasks: any;
     filters: any;
     projects: any;
@@ -12,22 +14,16 @@ const props = defineProps<{
     users: any;
     summary: any;
     readOnly?: boolean;
+    breadcrumbs?: any[];
 }>();
 
 defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Dashboard',
-                href: dashboard(),
-            },
-        ],
-    },
+    layout: AppLayout,
 });
 </script>
 
 <template>
-    <Head title="Dashboard" />
+    <Head :title="`${props.pageTitle}`"/>
 
     <TaskIndexView
         :tasks="props.tasks"
@@ -38,5 +34,4 @@ defineOptions({
         :summary="props.summary"
         :read-only="true"
     />
-
 </template>

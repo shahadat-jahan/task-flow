@@ -24,9 +24,14 @@ class TaskController extends Controller
      */
     public function myTasks(Request $request): Response
     {
+        $filters = $request->only(['status', 'priority', 'project_id', 'tag_id', 'search', 'sort', 'direction']);
+        $user =  $request->user()?->name;
+
         return Inertia::render('Tasks/Index', [
+            'pageTitle' => 'My Tasks',
+            'subtitle' => "Good morning, {$user} — here's what's happening",
             'tasks' => $this->tasks->myTasks($request),
-            'filters' => $request->only(['status', 'priority', 'project_id', 'tag_id', 'search', 'sort', 'direction']),
+            'filters' => $filters,
             ...$this->tasks->filterOptions(),
         ]);
     }
@@ -61,8 +66,10 @@ class TaskController extends Controller
             'attachments.uploader',
         ]);
 
+
         return Inertia::render('Tasks/Show', [
-            'pageTitle' => $task->title,
+            'pageTitle' => 'Task Details',
+            'subtitle' => "TF-{$task->id} . {$task->project->name} ",
             'task' => $task,
         ]);
     }

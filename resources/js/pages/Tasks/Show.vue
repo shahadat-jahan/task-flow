@@ -1,18 +1,13 @@
 <script setup lang="ts">
 import { useForm, router, usePage, Head } from '@inertiajs/vue3';
-import { MessageSquare, Paperclip, Trash2, Edit } from '@lucide/vue';
+import { MessageSquare, Paperclip, Trash2, PencilLine, Calendar } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useInitials } from '@/composables/useInitials';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { priorityBadgeClass, statusBadgeClass } from '@/lib/taskBadges';
 import { destroy as destroyAttachment } from '@/routes/attachments';
 import { destroy as destroyComment } from '@/routes/comments';
@@ -72,13 +67,11 @@ interface TaskDetail {
 }
 
 defineOptions({
-    layout: {
-        title: 'Task Details',
-        subtitle: 'View and manage this task',
-    },
+    layout: AppLayout,
 });
 
 const props = defineProps<{
+    pageTitle: string;
     task: TaskDetail;
 }>();
 
@@ -145,11 +138,7 @@ function isOverdue(dueDate: string | null, status: string): boolean {
 }
 
 function formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    });
+    return date.slice(0, 10);
 }
 
 function formatSize(bytes: number): string {
@@ -237,7 +226,7 @@ function navigateToEdit(): void {
 </script>
 
 <template>
-    <Head :title="`${task.title} - Task details`" />
+    <Head :title="`${props.pageTitle}-${task.title}`"/>
 
     <div class="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
         <!-- Header card -->
@@ -268,27 +257,12 @@ function navigateToEdit(): void {
                         variant="outline"
                         size="sm"
                         type="button"
+                        class="rounded-full"
                         @click="navigateToEdit"
                     >
-                        <Edit class="size-4 mr-2" />
+                        <PencilLine class="size-4 mr-2" />
                         Edit
                     </Button>
-                    <div class="w-full sm:w-44">
-                        <Select v-model="selectedStatus">
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="option in statusOptions"
-                                    :key="option.value"
-                                    :value="option.value"
-                                >
-                                    {{ option.label }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
                 </div>
             </div>
 
@@ -305,7 +279,7 @@ function navigateToEdit(): void {
                                 : ''
                         "
                     >
-                        {{ task.due_date ? formatDate(task.due_date) : '—' }}
+                        <Calendar class="size-3.5 mr-2" />{{ task.due_date ? formatDate(task.due_date) : '—' }}
                     </p>
                 </div>
                 <div>
