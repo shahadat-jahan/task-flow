@@ -110,7 +110,7 @@ class TaskService
     public function dashboardTasks(Request $request): LengthAwarePaginator
     {
         return Task::query()
-            ->with(['assignee:id,name', 'creator:id,name', 'project:id,name', 'tags:id,name,color'])
+            ->with(['assignee:id,name', 'creator:id,name', 'project:id,name,color', 'tags:id,name,color'])
             ->tap(fn (Builder $q) => $this->applyFilters($q, $request))
             ->orderBy($this->sortColumn($request), $this->direction($request))
             ->paginate(15)

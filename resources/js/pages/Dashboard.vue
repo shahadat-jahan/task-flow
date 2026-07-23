@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { taskPriorityConfig, taskProjectConfig, taskStatusConfig } from '@/composables/useTaskBadges';
 import AppLayout from '@/layouts/AppLayout.vue';
 import TaskIndexView from '@/pages/Tasks/Index.vue';
 

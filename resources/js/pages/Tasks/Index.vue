@@ -584,12 +584,16 @@ function openTask(task: Task): void {
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="font-medium">{{ task.title }}</p>
-                        <p class="mt-0.5 text-xs text-muted-foreground">
-                            #{{ task.id }}
-                            <template v-if="task.project">
-                                · {{ task.project.name }}
-                            </template>
-                        </p>
+                        <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span class="text-xs text-muted-foreground">#{{ task.id }}</span>
+                            <span
+                                v-if="task.project"
+                                :class="taskProjectConfig.item.badge"
+                                :style="{ backgroundColor: task.project.color + '20', color: task.project.color, borderColor: task.project.color + '40' }"
+                            >
+                                {{ task.project.name }}
+                            </span>
+                        </div>
                     </div>
                     <button
                         v-if="!readOnly"
