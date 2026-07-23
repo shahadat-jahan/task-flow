@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm, router, usePage, Head } from '@inertiajs/vue3';
-import { MessageSquare, Paperclip, Trash2, PencilLine, Calendar } from '@lucide/vue';
+import { MessageSquare, Paperclip, Trash2, PencilLine, Calendar, RefreshCw, Eye, Circle, CheckCircle2, X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 import InputError from '@/components/InputError.vue';
@@ -9,12 +9,29 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useInitials } from '@/composables/useInitials';
 import { useTaskModal } from '@/composables/useTaskModal';
-import { priorityBadgeClass, statusBadgeClass } from '@/lib/taskBadges';
+// Figma spec colors per status/priority. Kept local (instead of relying
+// solely on @/lib/taskBadges) so border + bg + text always match exactly,
+// since the shared lib may only define bg/text without a border color.
+const statusStyles: Record<string, string> = {
+    todo: 'bg-white text-slate-500 border-slate-200',
+    in_progress: 'bg-[#EFF6FF] text-[#1447E6] border-[#BEDBFF]',
+    in_review: 'bg-[#FAF5FF] text-[#9810FA] border-[#E9D4FF]',
+    done: 'bg-[#F0FDF4] text-[#00A63E] border-[#B9F8CF]',
+    cancelled: 'bg-white text-slate-400 border-slate-200',
+};
+
+const priorityStyles: Record<string, string> = {
+    low: 'bg-slate-100 text-slate-500 border-slate-200',
+    medium: 'bg-[#FFFBEB] text-[#D08700] border-[#FEE685]',
+    high: 'bg-[#FFF7ED] text-[#CA3500] border-[#FFD6A8]',
+    urgent: 'bg-[#FEF2F2] text-[#E7000B] border-[#FFC9C9]',
+};
 import { destroy as destroyAttachment } from '@/routes/attachments';
 import { destroy as destroyComment } from '@/routes/comments';
 import { store as storeAttachment } from '@/routes/my-tasks/attachments';
 import { store as storeComment } from '@/routes/my-tasks/comments';
 import { update as updateStatus } from '@/routes/my-tasks/status';
+import { log } from 'console';
 
 interface UserSummary {
     id: number;
@@ -64,8 +81,8 @@ interface TaskDetail {
     tags: TagSummary[];
     comments: CommentSummary[] | null;
     attachments: AttachmentSummary[] | null;
+    created_at: string;
 }
-
 
 const props = defineProps<{
     pageTitle: string;
@@ -75,11 +92,26 @@ const props = defineProps<{
     projects: { id: number; name: string; color: string }[];
     tags: { id: number; name: string; color: string }[];
 }>();
-
 const { getInitials } = useInitials();
 const { isOpen, editingTask, openEdit, close } = useTaskModal();
 const page = usePage();
 const currentUser = computed(() => page.props.auth.user as UserSummary | null);
+
+// Deterministic avatar color pairs, keyed by user id — mirrors Figma's
+// varied blue/green/purple avatar palette instead of one flat color.
+const avatarPalette = [
+    { bg: '#DBEAFE', fg: '#1447E6' }, // blue
+    { bg: '#D0FAE5', fg: '#007A55' }, // green
+    { bg: '#EDE9FE', fg: '#7008E7' }, // purple
+];
+
+function avatarStyle(userId: number) {
+    const palette = avatarPalette[userId % avatarPalette.length];
+
+    return { backgroundColor: palette.bg, color: palette.fg };
+}
+
+const activeTab = ref<'overview' | 'activity'>('overview');
 
 function navigateToEdit(): void {
     openEdit({
@@ -96,7 +128,7 @@ function navigateToEdit(): void {
 }
 
 const controlClass =
-    'border-input bg-transparent file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex w-full min-w-0 rounded-md border px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
+    'border-input bg-transparent file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex w-full min-w-0 rounded-2xl border px-3.5 py-2.5 text-sm shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
 const statusOptions: { value: string; label: string }[] = [
     { value: 'todo', label: 'Todo' },
@@ -110,7 +142,17 @@ const priorityOptions: { value: string; label: string }[] = [
     { value: 'low', label: 'Low' },
     { value: 'medium', label: 'Medium' },
     { value: 'high', label: 'High' },
+    { value: 'urgent', label: 'Urgent' },
 ];
+
+// Icon shown inside the status badge, per Figma reference table.
+const statusIcon: Record<string, typeof RefreshCw> = {
+    todo: Circle,
+    in_progress: RefreshCw,
+    in_review: Eye,
+    done: CheckCircle2,
+    cancelled: X,
+};
 
 const statusLabel = computed(
     () =>
@@ -235,257 +277,317 @@ function submitAttachment(): void {
 function deleteAttachment(id: number): void {
     router.delete(destroyAttachment.url(id), { preserveScroll: true });
 }
-
 </script>
 
 <template>
-    <Head :title="`${props.pageTitle}-${task.title}`"/>
+    <Head :title="`${props.pageTitle}-${task.title}`" />
 
-    <div class="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
-        <!-- Header card -->
-        <div class="rounded-lg border border-border bg-white p-4 sm:p-6">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="min-w-0 flex-1">
-                    <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">
-                        {{ task.title }}
-                    </h1>
-                    <div class="mt-2 flex flex-wrap items-center gap-2">
-                        <span
-                            class="rounded-full px-2 py-0.5 text-xs font-medium"
-                            :class="statusBadgeClass[task.status]"
-                        >
-                            {{ statusLabel }}
-                        </span>
-                        <span
-                            class="rounded-full px-2 py-0.5 text-xs font-medium"
-                            :class="priorityBadgeClass[task.priority]"
-                        >
-                            {{ priorityLabel }}
-                        </span>
+    <div class="mx-auto flex max-w-[912px] flex-col gap-4 p-4 sm:flex-row sm:items-start sm:gap-5 sm:p-6">
+        <!-- Main column -->
+        <div class="flex min-w-0 flex-1 flex-col gap-5">
+            <!-- Header card -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-6">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="rounded-[10px] bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-400"
+                            >
+                                TF-{{ String(task.id).padStart(3, '0') }}
+                            </span>
+                            <span
+                                v-if="task.project"
+                                class="rounded-[10px] border border-[#C6D2FF] bg-[#EEF2FF] px-2 py-0.5 text-xs font-medium text-[#432DD7]"
+                            >
+                                {{ task.project.name }}
+                            </span>
+                        </div>
+                        <h1 class="mt-2 text-lg font-semibold tracking-tight text-slate-900 sm:text-[18px]">
+                            {{ task.title }}
+                        </h1>
                     </div>
-                </div>
 
-                <div v-if="canEdit" class="flex items-center gap-2">
                     <Button
+                        v-if="canEdit"
                         variant="outline"
                         size="sm"
                         type="button"
-                        class="rounded-full"
+                        class="shrink-0 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-50"
                         @click="navigateToEdit"
                     >
-                        <PencilLine class="size-4 mr-2" />
+                        <PencilLine class="mr-1.5 size-3.5" />
                         Edit
                     </Button>
                 </div>
-            </div>
 
-            <div
-                class="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-4"
-            >
-                <div>
-                    <p class="text-xs text-muted-foreground">Due date</p>
-                    <p
-                        class="mt-1 text-sm font-medium"
-                        :class="
-                            isOverdue(task.due_date, task.status)
-                                ? 'text-red-600'
-                                : ''
-                        "
-                    >
-                        <Calendar class="size-3.5 mr-2" />{{ task.due_date ? formatDate(task.due_date) : '—' }}
-                    </p>
-                </div>
-                <div>
-                    <p class="text-xs text-muted-foreground">Assignee</p>
-                    <p class="mt-1 text-sm font-medium">
-                        {{ task.assignee?.name ?? 'Unassigned' }}
-                    </p>
-                </div>
-                <div>
-                    <p class="text-xs text-muted-foreground">Project</p>
-                    <p
-                        class="mt-1 flex items-center gap-1.5 text-sm font-medium"
-                    >
-                        <span
-                            v-if="task.project"
-                            class="size-2 shrink-0 rounded-full"
-                            :style="{ backgroundColor: task.project.color }"
-                        />
-                        {{ task.project?.name ?? 'No project' }}
-                    </p>
-                </div>
-                <div>
-                    <p class="text-xs text-muted-foreground">Created by</p>
-                    <p class="mt-1 text-sm font-medium">
-                        {{ task.creator?.name ?? '—' }}
-                    </p>
-                </div>
-            </div>
-
-            <div v-if="task.tags.length" class="mt-4 flex flex-wrap gap-2">
-                <span
-                    v-for="tag in task.tags"
-                    :key="tag.id"
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                    :style="{
-                        backgroundColor: tag.color + '20',
-                        color: tag.color,
-                    }"
-                >
+                <div class="mt-4 flex flex-wrap items-center gap-2">
                     <span
-                        class="size-2 rounded-full"
-                        :style="{ backgroundColor: tag.color }"
-                    />
-                    {{ tag.name }}
-                </span>
-            </div>
+                        class="inline-flex items-center gap-1.5 rounded-[10px] border px-2 py-0.5 text-xs font-medium"
+                        :class="statusStyles[task.status]"
+                    >
+                        <component :is="statusIcon[task.status]" v-if="statusIcon[task.status]" class="size-3" />
+                        {{ statusLabel }}
+                    </span>
+                    <span
+                        class="inline-flex items-center gap-1.5 rounded-[10px] border px-2 py-0.5 text-xs font-medium"
+                        :class="priorityStyles[task.priority]"
+                    >
+                        <span class="size-1.5 shrink-0 rounded-full bg-current" />
+                        {{ priorityLabel }}
+                    </span>
+                    <span
+                        v-for="tag in task.tags"
+                        :key="tag.id"
+                        class="rounded-[10px] bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700"
+                    >
+                        {{ tag.name }}
+                    </span>
+                </div>
 
-            <div
-                v-if="task.description"
-                class="mt-4 border-t border-border pt-4"
-            >
-                <p class="text-xs text-muted-foreground">Description</p>
-                <p class="mt-1 text-sm whitespace-pre-wrap">
+                <p v-if="task.description" class="mt-5 text-sm leading-[1.62] text-slate-600">
                     {{ task.description }}
                 </p>
+
+                <!-- Tabs -->
+                <div class="mt-6 flex items-center gap-1 border-b border-slate-100">
+                    <button
+                        type="button"
+                        class="border-b-2 px-4 py-2 text-sm font-medium capitalize transition-colors"
+                        :class="
+                            activeTab === 'overview'
+                                ? 'border-[#4F39F6] text-[#4F39F6]'
+                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                        "
+                        @click="activeTab = 'overview'"
+                    >
+                        Overview
+                    </button>
+                    <button
+                        type="button"
+                        class="border-b-2 px-4 py-2 text-sm font-medium capitalize transition-colors"
+                        :class="
+                            activeTab === 'activity'
+                                ? 'border-[#4F39F6] text-[#4F39F6]'
+                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                        "
+                        @click="activeTab = 'activity'"
+                    >
+                        Activity
+                    </button>
+                </div>
+
+                <!-- Comments (inside overview tab, matching Figma) -->
+                <div v-if="activeTab === 'overview'" class="mt-5">
+                    <h2 class="text-xs font-semibold uppercase tracking-[0.6px] text-slate-500">
+                        Comments ({{ comments.length }})
+                    </h2>
+
+                    <div v-if="comments.length" class="mt-3 space-y-4">
+                        <div v-for="comment in comments" :key="comment.id" class="flex gap-3">
+                            <Avatar class="size-8 shrink-0 ring-2 ring-white">
+                                <AvatarFallback
+                                    :style="avatarStyle(comment.user.id)"
+                                    class="text-xs font-semibold"
+                                >
+                                    {{ getInitials(comment.user.name) }}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div class="min-w-0 flex-1 rounded-2xl bg-slate-50 p-3">
+                                <div class="flex items-center justify-between gap-2">
+                                    <p class="text-xs font-semibold text-slate-800">
+                                        {{ comment.user.name }}
+                                    </p>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-slate-400">
+                                            {{ timeAgo(comment.created_at) }}
+                                        </span>
+                                        <button
+                                            v-if="comment.user.id === currentUser?.id"
+                                            type="button"
+                                            class="text-slate-400 transition-colors hover:text-red-600"
+                                            aria-label="Delete comment"
+                                            @click="deleteComment(comment.id)"
+                                        >
+                                            <Trash2 class="size-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="mt-1.5 text-sm leading-[1.62] text-slate-600 whitespace-pre-wrap">
+                                    {{ comment.body }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <p v-else class="mt-3 flex items-center gap-2 text-sm text-slate-400">
+                        <MessageSquare class="size-4" />
+                        No comments yet
+                    </p>
+
+                    <!-- Composer -->
+                    <div class="mt-5 flex gap-3">
+                        <Avatar v-if="currentUser" class="size-8 shrink-0 ring-2 ring-white">
+                            <AvatarFallback :style="avatarStyle(currentUser.id)" class="text-xs font-semibold">
+                                {{ getInitials(currentUser.name) }}
+                            </AvatarFallback>
+                        </Avatar>
+                        <form class="min-w-0 flex-1 space-y-2" @submit.prevent="submitComment">
+                            <textarea
+                                v-model="commentForm.body"
+                                rows="1"
+                                placeholder="Add a comment…"
+                                :class="controlClass"
+                            />
+                            <InputError :message="commentForm.errors.body" />
+                            <div class="flex justify-end">
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    class="rounded-2xl"
+                                    :disabled="commentForm.processing || !commentForm.body.trim()"
+                                >
+                                    Post comment
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div v-else class="mt-5 text-sm text-slate-400">Activity log coming soon</div>
             </div>
         </div>
 
-        <!-- Comments -->
-        <section class="rounded-lg border border-border bg-white p-4 sm:p-6">
-            <h2 class="font-semibold">Comments</h2>
+        <!-- Sidebar -->
+        <div class="flex w-full flex-col gap-4 sm:w-[285px] sm:shrink-0">
+            <!-- Details card -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-5">
+                <h2 class="text-xs font-semibold uppercase tracking-[0.6px] text-slate-500">Details</h2>
 
-            <div v-if="comments.length" class="mt-4 space-y-4">
-                <div
-                    v-for="comment in comments"
-                    :key="comment.id"
-                    class="flex gap-3"
-                >
-                    <Avatar class="size-8 shrink-0">
-                        <AvatarFallback>{{
-                            getInitials(comment.user.name)
-                        }}</AvatarFallback>
-                    </Avatar>
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center justify-between gap-2">
-                            <p class="text-sm font-medium">
-                                {{ comment.user.name }}
-                            </p>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs text-muted-foreground">
-                                    {{ timeAgo(comment.created_at) }}
-                                </span>
-                                <button
-                                    v-if="comment.user.id === currentUser?.id"
-                                    type="button"
-                                    class="text-muted-foreground transition-colors hover:text-red-600"
-                                    aria-label="Delete comment"
-                                    @click="deleteComment(comment.id)"
-                                >
-                                    <Trash2 class="size-4" />
-                                </button>
-                            </div>
+                <div class="mt-4 flex flex-col divide-y divide-slate-100">
+                    <div class="flex items-center justify-between py-3.5 first:pt-0">
+                        <span class="text-xs text-slate-500">Assignee</span>
+                        <div v-if="task.assignee" class="flex items-center gap-2">
+                            <Avatar class="size-6 ring-2 ring-white">
+                                <AvatarFallback :style="avatarStyle(task.assignee.id)" class="text-xs font-semibold">
+                                    {{ getInitials(task.assignee.name) }}
+                                </AvatarFallback>
+                            </Avatar>
+                            <span class="text-sm text-slate-700">{{ task.assignee.name }}</span>
                         </div>
-                        <p class="mt-1 text-sm whitespace-pre-wrap">
-                            {{ comment.body }}
-                        </p>
+                        <span v-else class="text-sm text-slate-400">Unassigned</span>
+                    </div>
+
+                    <div class="flex items-center justify-between py-3.5">
+                        <span class="text-xs text-slate-500">Due Date</span>
+                        <span
+                            class="flex items-center gap-1.5 text-sm"
+                            :class="isOverdue(task.due_date, task.status) ? 'text-red-600' : 'text-slate-700'"
+                        >
+                            <Calendar class="size-3.5 text-slate-400" />
+                            {{ task.due_date ? formatDate(task.due_date) : '—' }}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center justify-between py-3.5">
+                        <span class="text-xs text-slate-500">Project</span>
+                        <span
+                            v-if="task.project"
+                            class="rounded-[10px] border border-[#C6D2FF] bg-[#EEF2FF] px-2 py-0.5 text-xs font-medium text-[#432DD7]"
+                        >
+                            {{ task.project.name }}
+                        </span>
+                        <span v-else class="text-sm text-slate-400">No project</span>
+                    </div>
+
+                    <div class="flex items-center justify-between py-3.5">
+                        <span class="text-xs text-slate-500">Created Date</span>
+                        <span class="flex items-center gap-1.5 text-sm">
+                            <Calendar class="size-3.5 text-slate-400" />
+                            {{ task.created_at ? formatDate(task.created_at) : '—' }}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center justify-between py-3.5">
+                        <span class="text-xs text-slate-500">Comments</span>
+                        <span class="flex items-center gap-1.5 text-sm text-slate-700">
+                            <MessageSquare class="size-3.5 text-slate-400" />
+                            {{ comments.length }}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center justify-between py-3.5 last:pb-0">
+                        <span class="text-xs text-slate-500">Attachments</span>
+                        <span class="flex items-center gap-1.5 text-sm text-slate-700">
+                            <Paperclip class="size-3.5 text-slate-400" />
+                            {{ attachments.length }}
+                        </span>
                     </div>
                 </div>
             </div>
-            <p
-                v-else
-                class="mt-4 flex items-center gap-2 text-sm text-muted-foreground"
-            >
-                <MessageSquare class="size-4" />
-                No comments yet
-            </p>
 
-            <form class="mt-4 space-y-2" @submit.prevent="submitComment">
-                <textarea
-                    v-model="commentForm.body"
-                    rows="3"
-                    placeholder="Add a comment…"
-                    :class="controlClass"
-                />
-                <InputError :message="commentForm.errors.body" />
-                <div class="flex justify-end">
-                    <Button
-                        type="submit"
-                        :disabled="
-                            commentForm.processing || !commentForm.body.trim()
-                        "
+            <!-- Attachments card -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-5">
+                <h2 class="text-xs font-semibold uppercase tracking-[0.6px] text-slate-500">Attachments</h2>
+
+                <div class="mt-3 flex flex-col gap-1">
+                    <div
+                        v-for="attachment in attachments"
+                        :key="attachment.id"
+                        class="group flex items-center gap-3 rounded-xl px-1 py-2 hover:bg-slate-50"
                     >
-                        Post comment
-                    </Button>
-                </div>
-            </form>
-        </section>
-
-        <!-- Attachments -->
-        <section class="rounded-lg border border-border bg-white p-4 sm:p-6">
-            <h2 class="font-semibold">Attachments</h2>
-
-            <div v-if="attachments.length" class="mt-4 space-y-2">
-                <div
-                    v-for="attachment in attachments"
-                    :key="attachment.id"
-                    class="flex items-center gap-3 rounded-md border border-border p-3"
-                >
-                    <Paperclip class="size-4 shrink-0 text-muted-foreground" />
-                    <div class="min-w-0 flex-1">
+                        <div class="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#EEF2FF]">
+                            <Paperclip class="size-3.5 text-[#615FFF]" />
+                        </div>
                         <a
                             :href="attachment.stored_path"
                             target="_blank"
                             rel="noopener"
-                            class="block truncate text-sm font-medium hover:underline"
+                            class="min-w-0 flex-1"
                         >
-                            {{ attachment.original_filename }}
+                            <p class="truncate text-xs font-medium text-slate-700">
+                                {{ attachment.original_filename }}
+                            </p>
+                            <p class="text-xs text-slate-400">{{ formatSize(attachment.size_bytes) }}</p>
                         </a>
-                        <p class="text-xs text-muted-foreground">
-                            {{ formatSize(attachment.size_bytes) }} ·
-                            {{ attachment.uploader.name }} ·
-                            {{ timeAgo(attachment.created_at) }}
-                        </p>
+                        <button
+                            v-if="attachment.uploader.id === currentUser?.id"
+                            type="button"
+                            class="shrink-0 text-slate-300 opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100"
+                            aria-label="Delete attachment"
+                            @click="deleteAttachment(attachment.id)"
+                        >
+                            <Trash2 class="size-3.5" />
+                        </button>
                     </div>
-                    <button
-                        v-if="attachment.uploader.id === currentUser?.id"
-                        type="button"
-                        class="text-muted-foreground transition-colors hover:text-red-600"
-                        aria-label="Delete attachment"
-                        @click="deleteAttachment(attachment.id)"
-                    >
-                        <Trash2 class="size-4" />
-                    </button>
-                </div>
-            </div>
-            <p
-                v-else
-                class="mt-4 flex items-center gap-2 text-sm text-muted-foreground"
-            >
-                <Paperclip class="size-4" />
-                No attachments yet
-            </p>
 
-            <form
-                class="mt-4 flex flex-wrap items-center gap-3"
-                @submit.prevent="submitAttachment"
-            >
-                <input
-                    type="file"
-                    class="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-muted/70"
-                    @change="onFileChange"
-                />
-                <InputError :message="attachmentForm.errors.file" />
-                <Button
-                    type="submit"
-                    :disabled="
-                        attachmentForm.processing || !attachmentForm.file
-                    "
-                >
-                    Upload
-                </Button>
-            </form>
-        </section>
+                    <p v-if="!attachments.length" class="flex items-center gap-2 py-2 text-sm text-slate-400">
+                        <Paperclip class="size-4" />
+                        No attachments yet
+                    </p>
+                </div>
+
+                <form class="mt-3" @submit.prevent="submitAttachment">
+                    <label
+                        class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 py-2 text-xs font-medium text-slate-500 transition-colors hover:border-slate-400 hover:text-slate-600"
+                    >
+                        <Paperclip class="size-3.5" />
+                        Upload file
+                        <input type="file" class="hidden" @change="onFileChange" />
+                    </label>
+                    <InputError :message="attachmentForm.errors.file" />
+                    <div v-if="attachmentForm.file" class="mt-2 flex items-center justify-between gap-2">
+                        <span class="truncate text-xs text-slate-500">{{ attachmentForm.file.name }}</span>
+                        <Button
+                            type="submit"
+                            size="sm"
+                            class="rounded-xl"
+                            :disabled="attachmentForm.processing"
+                        >
+                            Upload
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <TaskFormModal
             :open="isOpen"
