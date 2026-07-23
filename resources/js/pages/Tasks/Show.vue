@@ -7,7 +7,7 @@ import TaskFormModal from '@/components/TaskFormModal.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useInitials } from '@/composables/useInitials';
-import { taskPriorityConfig, taskStatusConfig } from '@/composables/useTaskBadges';
+import { taskPriorityConfig, taskProjectConfig, taskStatusConfig } from '@/composables/useTaskBadges';
 import { useTaskModal } from '@/composables/useTaskModal';
 import { destroy as destroyAttachment } from '@/routes/attachments';
 import { destroy as destroyComment } from '@/routes/comments';
@@ -270,7 +270,8 @@ function deleteAttachment(id: number): void {
                             </span>
                             <span
                                 v-if="task.project"
-                                class="rounded-[10px] border border-[#C6D2FF] bg-[#EEF2FF] px-2 py-0.5 text-xs font-medium text-[#432DD7]"
+                                :class="taskProjectConfig.item.badge"
+                                :style="{ backgroundColor: task.project.color + '20', color: task.project.color, borderColor: task.project.color + '40' }"
                             >
                                 {{ task.project.name }}
                             </span>
@@ -305,7 +306,7 @@ function deleteAttachment(id: number): void {
                         class="inline-flex items-center gap-1.5 rounded-[10px] border px-2 py-0.5 text-xs font-medium"
                         :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.badge"
                     >
-                        <span class="size-1.5 shrink-0 rounded-full bg-current" />
+                        <span :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.dotSmall" />
                         {{ priorityLabel }}
                     </span>
                     <span
@@ -464,7 +465,8 @@ function deleteAttachment(id: number): void {
                         <span class="text-xs text-slate-500">Project</span>
                         <span
                             v-if="task.project"
-                            class="rounded-[10px] border border-[#C6D2FF] bg-[#EEF2FF] px-2 py-0.5 text-xs font-medium text-[#432DD7]"
+                            :class="taskProjectConfig.item.badge"
+                            :style="{ backgroundColor: task.project.color + '20', color: task.project.color, borderColor: task.project.color + '40' }"
                         >
                             {{ task.project.name }}
                         </span>

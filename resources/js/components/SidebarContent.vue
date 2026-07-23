@@ -18,6 +18,7 @@ import {
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useInitials } from '@/composables/useInitials';
+import { taskProjectConfig } from '@/composables/useTaskBadges';
 import { dashboard } from '@/routes';
 import { index as myTasksIndex } from '@/routes/my-tasks';
 import { edit as profileEdit } from '@/routes/profile';
@@ -81,21 +82,21 @@ const mainNavItems: NavItem[] = [
 
             <div>
                 <p
-                    class="px-3 pb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                    :class="taskProjectConfig.section.header"
                 >
                     Projects
                 </p>
-                <ul class="space-y-1">
+                <ul :class="taskProjectConfig.section.list">
                     <li v-for="project in projects" :key="project.id">
                         <div
-                            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground"
+                            :class="taskProjectConfig.item.row"
                         >
                             <span
-                                class="size-2 shrink-0 rounded-full"
+                                :class="taskProjectConfig.item.dot"
                                 :style="{ backgroundColor: project.color }"
                             />
-                            <span class="truncate">{{ project.name }}</span>
-                            <span class="ml-auto text-xs tabular-nums">
+                            <span :class="taskProjectConfig.item.name">{{ project.name }}</span>
+                            <span :class="taskProjectConfig.item.count">
                                 {{ project.tasks_count }}
                             </span>
                         </div>

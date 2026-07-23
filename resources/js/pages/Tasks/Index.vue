@@ -24,7 +24,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useInitials } from '@/composables/useInitials';
-import { taskPriorityConfig, taskStatusConfig } from '@/composables/useTaskBadges';
+import { taskPriorityConfig, taskProjectConfig, taskStatusConfig } from '@/composables/useTaskBadges';
 import { useTaskModal } from '@/composables/useTaskModal';
 import { destroy, show } from '@/routes/my-tasks';
 
@@ -483,12 +483,9 @@ function openTask(task: Task): void {
                             >
                                 <span
                                     v-if="task.project"
-                                    class="flex items-center gap-1.5"
+                                    :class="taskProjectConfig.item.badge"
+                                    :style="{ backgroundColor: task.project.color + '20', color: task.project.color, borderColor: task.project.color + '40' }"
                                 >
-                                    <span
-                                        class="size-2 shrink-0 rounded-full"
-                                        :style="{ backgroundColor: task.project.color }"
-                                    />
                                     {{ task.project.name }}
                                 </span>
                                 <span
@@ -511,9 +508,10 @@ function openTask(task: Task): void {
                         </td>
                         <td class="px-4 py-3">
                             <span
-                                class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
                                 :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.badge"
                             >
+                                <span :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.dotSmall" />
                                 {{ taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.label }}
                             </span>
                         </td>
@@ -614,9 +612,10 @@ function openTask(task: Task): void {
                         {{ statusLabel(task.status) }}
                     </span>
                     <span
-                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                        class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
                         :class="taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.badge"
                     >
+                        <span :class="(taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.dotSmall ?? '') + ' size-1.5 shrink-0 rounded-full'" />
                         {{ taskPriorityConfig[task.priority as keyof typeof taskPriorityConfig]?.label }}
                     </span>
                     <span
