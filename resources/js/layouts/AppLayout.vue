@@ -26,6 +26,8 @@ const page = usePage();
 const { openCreate } = useTaskModal();
 const mobileNavOpen = ref(false);
 const search = ref('');
+const sidebarCollapsed = ref(false);
+
 watch(search, (val) => {
   // Always redirect to the dashboard page when searching globally
   router.get('/dashboard', { search: val }, { preserveState: true, preserveScroll: true, replace: true });
@@ -35,8 +37,15 @@ watch(search, (val) => {
 <template>
     <div class="flex min-h-svh bg-muted/40">
         <!-- Sidebar (desktop) -->
-        <aside class="hidden w-64 shrink-0 border-r border-border md:flex">
-            <SidebarContent class="w-full" />
+        <aside
+            class="hidden shrink-0 overflow-hidden border-r border-border md:flex transition-all duration-300"
+            :class="sidebarCollapsed ? 'w-12' : 'w-64'"
+        >
+            <SidebarContent
+                class="w-full"
+                :collapsed="sidebarCollapsed"
+                @toggle="sidebarCollapsed = !sidebarCollapsed"
+            />
         </aside>
 
         <!-- Mobile nav drawer -->
@@ -44,6 +53,7 @@ watch(search, (val) => {
             <SheetContent side="left" class="w-64 p-0">
                 <SidebarContent
                     class="w-full"
+                    :showToggle="false"
                     @navigate="mobileNavOpen = false"
                 />
             </SheetContent>
