@@ -11,12 +11,14 @@ made where the original brief was ambiguous.)
 - **Task CRUD** via a single Create/Edit modal (status, priority, due date,
   assignee, project, tags, description).
 - **Dashboard / Tasks list** — one shared page with summary cards (totals +
-  week-over-week trends), client-driven filters (status, priority, project, tag,
-  free-text search), responsive table → mobile cards, and a delete dialog.
+  month-over-month trends), client-driven filters (status, priority, project, tag,
+  free-text search with debounce), responsive table → mobile cards, and a delete dialog.
 - **Task Details** — inline status update, comments (list / add / delete your
   own), and attachments (upload / download / delete your own).
 - **Projects & Tags** — tasks are grouped by project; tags are created inline
   while creating/editing a task (no separate tag-management screen).
+- **Collapsible Sidebar** — toggle button to collapse/expand the sidebar with
+  smooth animation; shows only icons when collapsed.
 - **Authentication** via Laravel Fortify (register, login, logout).
 
 ## Prerequisites
@@ -71,12 +73,16 @@ made where the original brief was ambiguous.)
    php artisan key:generate
    ```
 
-6. Run migrations and seed the database (the seeder creates demo users, projects,
-   tags, tasks, and some comments/attachments):
+6. Run migrations and seed the database (the seeder creates an admin user,
+   5 regular users, projects, tags, 25 tasks, and some comments/attachments):
 
    ```bash
    php artisan migrate --seed
    ```
+
+   **Default credentials:**
+   - Admin: `admin@example.com` / `12345678`
+   - Regular users: Check the database after seeding, pass: `12345678`
 
 ## Running locally
 

@@ -22,6 +22,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        User::factory()->create([
+            'name' => 'Admin',
+            'email' => 'admin@example.com',
+            'password' => '12345678',
+            'email_verified_at' => now(),
+        ]);
+
         $users = User::factory(5)->create(['password' => '12345678']);
 
         $projectNames = ['Product', 'Growth', 'Infrastructure', 'Design'];
