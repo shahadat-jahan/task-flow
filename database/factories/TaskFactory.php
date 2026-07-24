@@ -27,10 +27,12 @@ class TaskFactory extends Factory
             'description' => fake()->optional(0.7)->paragraph(),
             'status' => fake()->randomElement(TaskStatus::cases()),
             'priority' => fake()->randomElement(TaskPriority::cases()),
-            'due_date' => fake()->optional(0.6)->dateTimeBetween('now', '+3 months'),
+            'due_date' => fake()->optional(0.6)->dateTimeBetween('now', '+1 months'),
             'assignee_id' => User::factory(),
             'created_by' => User::factory(),
             'project_id' => Project::factory(),
+            'created_at' => fake()->dateTimeBetween('-6 month', 'now'),
+            'updated_at' => fake()->dateTimeBetween('-6 month', 'now'),
         ];
     }
 
