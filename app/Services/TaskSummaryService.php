@@ -58,13 +58,13 @@ class TaskSummaryService
     }
 
     /**
-     * Build week-over-week trend deltas for each summary card.
+     * Build month-over-month trend deltas for each summary card.
      *
      * Deltas compare the current value against the same metric as it stood a
-     * week ago, using each task's `created_at` as the historical cutoff. Task
+     * month ago, using each task's `created_at` as the historical cutoff. Task
      * status is not snapshotted over time, so the completed/in-progress/overdue
-     * "week ago" figures assume the record's *current* status also applied a
-     * week ago — a documented approximation (see DECISIONS.md).
+     * "month ago" figures assume the record's *current* status also applied a
+     * month ago — a documented approximation (see DECISIONS.md).
      *
      * @return array<string, array{value: string, direction: 'up'|'down'|'neutral', change: int, previous: int, current: int}>
      */
@@ -97,7 +97,7 @@ class TaskSummaryService
             'total_tasks' => $this->delta($totalTasks, $previousTotal),
             'completed' => $this->delta($completed, $previousCompleted),
             'in_progress' => $this->delta($inProgress, $previousInProgress),
-            'overdue_count' => $this->delta($overdue, $previousOverdue),
+            'overdue_count' => $this->invertDelta($this->delta($overdue, $previousOverdue)),
         ];
     }
 
@@ -142,6 +142,24 @@ class TaskSummaryService
             'previous' => $previous,
             'current' => $current,
         ];
+    }
+
+    /**
+     * Invert trend direction for negative metrics.
+     *
+     * For metrics like "overdue", an increase is bad (should show red/down),
+     * but the delta calculation treats any increase as "up". This method
+     * flips the direction so the frontend displays the correct color.
+     */
+    protected function invertDelta(array $delta): array
+    {
+        if ($delta['direction'] === 'up') {
+            $delta['direction'] = 'down';
+        } elseif ($delta['direction'] === 'down') {
+            $delta['direction'] = 'up';
+        }
+
+        return $delta;
     }
 
     /**

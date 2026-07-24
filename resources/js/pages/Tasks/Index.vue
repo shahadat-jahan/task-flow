@@ -426,10 +426,9 @@ function openTask(task: Task): void {
                 >
                     Clear
                 </Button>
-            </div>
-
-            <div class="text-xs font-medium text-slate-400 shrink-0">
-                {{ props.tasks.total ?? props.tasks.data.length }} tasks
+                <div class="text-xs font-medium text-slate-400 shrink-0">
+                    {{ props.tasks.total ?? props.tasks.data.length }} tasks
+                </div>
             </div>
         </div>
 
