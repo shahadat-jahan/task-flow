@@ -28,9 +28,17 @@ const mobileNavOpen = ref(false);
 const search = ref('');
 const sidebarCollapsed = ref(false);
 
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch(search, (val) => {
-  // Always redirect to the dashboard page when searching globally
-  router.get('/dashboard', { search: val }, { preserveState: true, preserveScroll: true, replace: true });
+  // Debounce global search to avoid excessive API calls
+  if (searchTimer) {
+    clearTimeout(searchTimer);
+  }
+
+  searchTimer = setTimeout(() => {
+    // Always redirect to the dashboard page when searching globally
+    router.get('/dashboard', { search: val }, { preserveState: true, preserveScroll: true, replace: true });
+  }, 300);
 });
 </script>
 
