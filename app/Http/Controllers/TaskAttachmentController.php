@@ -9,6 +9,7 @@ use App\Services\TaskAttachmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TaskAttachmentController extends Controller
 {
@@ -28,6 +29,20 @@ class TaskAttachmentController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Attachment added.')]);
 
         return to_route('my-tasks.show', $task);
+    }
+
+    /**
+     * Show an attachment inline in the browser. Any authenticated user may view.
+     */
+    public function show(Request $request, TaskAttachment $attachment): BinaryFileResponse
+    {
+        $filePath = storage_path('app/public/'.$attachment->stored_path);
+
+        abort_if(!file_exists($filePath), 404);
+
+        return response()->file($filePath, [
+            'Content-Disposition' => 'inline; filename="'.$attachment->original_filename.'"',
+        ]);
     }
 
     /**

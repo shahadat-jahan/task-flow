@@ -27,6 +27,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('comments.destroy');
     Route::post('my-tasks/{task}/attachments', [TaskAttachmentController::class, 'store'])
         ->name('my-tasks.attachments.store');
+    Route::get('attachments/{attachment}', [TaskAttachmentController::class, 'show'])
+        ->name('attachments.show');
     Route::delete('attachments/{attachment}', [TaskAttachmentController::class, 'destroy'])
         ->name('attachments.destroy');
     Route::resource('projects', ProjectController::class)->only(['index', 'store', 'update', 'destroy']);

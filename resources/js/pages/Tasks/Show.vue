@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useInitials } from '@/composables/useInitials';
 import { taskPriorityConfig, taskProjectConfig, taskStatusConfig } from '@/composables/useTaskBadges';
 import { useTaskModal } from '@/composables/useTaskModal';
-import { destroy as destroyAttachment } from '@/routes/attachments';
+import { show as showAttachment, destroy as destroyAttachment } from '@/routes/attachments';
 import { destroy as destroyComment } from '@/routes/comments';
 import { store as storeAttachment } from '@/routes/my-tasks/attachments';
 import { store as storeComment } from '@/routes/my-tasks/comments';
@@ -517,7 +517,7 @@ function deleteAttachment(id: number): void {
                             <Paperclip class="size-3.5 text-[#615FFF]" />
                         </div>
                         <a
-                            :href="attachment.stored_path"
+                            :href="showAttachment.url(attachment.id)"
                             target="_blank"
                             rel="noopener"
                             class="min-w-0 flex-1"
